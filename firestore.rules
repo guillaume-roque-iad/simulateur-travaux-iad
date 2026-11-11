@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Conseiller de l'équipe : adresse vérifiée @iadfrance.fr
+    function member() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.matches('.*@iadfrance[.]fr$');
+    }
+
+    // Administrateurs de la grille (à garder identique à APP_CONFIG.adminEmails)
+    function admin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['guillaume.roque@iadfrance.fr'];
+    }
+
+    // Grille de prix et coefficients : lue par toute l'équipe, modifiée par l'administrateur
+    match /config/{docId} {
+      allow read: if member() || admin();
+      allow write: if admin();
+    }
+
+    // Historique : chaque conseiller ne voit que ses propres simulations
+    match /users/{userId}/sims/{simId} {
+      allow read, write: if (member() || admin()) && request.auth.uid == userId;
+    }
+
+    // Retours terrain : chaque conseiller dépose les siens, l'administrateur les consulte
+    match /retours/{retourId} {
+      allow create: if (member() || admin()) && request.resource.data.uid == request.auth.uid;
+      allow update: if (member() || admin())
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid;
+      allow read, delete: if admin();
+    }
+
+    // Tout le reste est fermé
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

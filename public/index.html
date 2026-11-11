@@ -1,0 +1,1188 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Simulateur Travaux iad</title>
+<meta name="description" content="Estimation indicative des travaux, aides à la rénovation et argumentaire de négociation pour les conseillers immobiliers.">
+<meta name="theme-color" content="#00b4ec">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Travaux">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+/* Layout : outil du quotidien à onglets — formulaire à gauche, estimation collante à droite (desktop), barre de total fixe en bas (mobile). Bleu iad en touches, corail réservé aux alertes. */
+:root{
+  --bg:#f6f8fa; --surface:#ffffff; --line:#dde5ea; --fg:#111418; --muted:#55606e;
+  --head:#3c4a5f; --accent:#00b4ec; --accent-strong:#007daf; --accent-soft:#e9fcff;
+  --coral:#ea584a; --coral-soft:#fdecea; --beige:#f1ece5; --ok:#1d7a4a;
+  --font:"Montserrat",Helvetica,Arial,sans-serif; --r:12px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#151a21; --surface:#1e252e; --line:#2f3946; --fg:#eef2f5; --muted:#a3adb9;
+  --head:#cfe6f0; --accent:#25cfff; --accent-strong:#5ddeff; --accent-soft:#0f2a35;
+  --coral:#f07a6e; --coral-soft:#3a2220; --beige:#2a2622; --ok:#6fd39d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#151a21; --surface:#1e252e; --line:#2f3946; --fg:#eef2f5; --muted:#a3adb9;
+  --head:#cfe6f0; --accent:#25cfff; --accent-strong:#5ddeff; --accent-soft:#0f2a35;
+  --coral:#f07a6e; --coral-soft:#3a2220; --beige:#2a2622; --ok:#6fd39d; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 110px}
+header.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:space-between;margin-bottom:14px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand svg{height:26px;width:auto;fill:var(--accent)}
+.brand .sep{width:1px;height:28px;background:var(--line)}
+h1{font-size:1.25rem;font-weight:800;color:var(--head);margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:.82rem;margin:0}
+.sync{font-size:.74rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--line);display:inline-block}
+.sync.on i{background:var(--ok)}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;border-bottom:1px solid var(--line);padding-bottom:10px}
+nav.tabs a{font-weight:700;font-size:.85rem;color:var(--muted);text-decoration:none;padding:7px 14px;border-radius:999px}
+nav.tabs a[aria-current="page"]{background:var(--accent);color:#000}
+nav.tabs a:hover{color:var(--fg)}
+.presets{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.presets span{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pill{font-family:var(--font);border:1.5px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 13px;font-size:.8rem;font-weight:600;cursor:pointer}
+.pill:hover{border-color:var(--accent)}
+.pill:disabled{opacity:.5;cursor:default}
+a:focus-visible,.pill:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start}
+.grid.full{grid-template-columns:minmax(0,1fr)}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.col{display:flex;flex-direction:column;gap:20px;min-width:0}
+.eyebrow{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-strong);margin:0}
+h2{font-size:1.05rem;font-weight:700;color:var(--head);margin:0}
+h3.sm{font-size:.9rem;font-weight:700;color:var(--head);margin:0}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:.76rem;font-weight:600;color:var(--muted);min-width:0}
+input,select,textarea{font-family:var(--font);font-size:.9rem;color:var(--fg);background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;font-variant-numeric:tabular-nums}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+input:disabled{opacity:.7}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;padding:2px;background:var(--bg)}
+.seg button{font-family:var(--font);border:0;background:transparent;color:var(--muted);font-size:.74rem;font-weight:600;padding:5px 10px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#000}
+.typeseg button{font-size:.85rem;padding:7px 16px}
+.fam h3{font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:10px 0 4px}
+.poste{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.poste .name{font-weight:600;font-size:.9rem}
+.poste .name small{display:block;font-weight:500;color:var(--muted);font-size:.74rem}
+.poste .amt{font-weight:700;font-variant-numeric:tabular-nums;text-align:right;font-size:.9rem;white-space:nowrap}
+.poste .ctrl{grid-column:2/4;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.poste.off .ctrl,.poste.off .amt{display:none}
+.poste.off .name{color:var(--muted)}
+.qty{display:flex;align-items:center;gap:6px;font-size:.74rem;color:var(--muted)}
+.qty input{width:84px;padding:5px 8px;font-size:.82rem}
+.photo{font-size:.74rem;font-weight:600;color:var(--accent-strong);cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.photo input{display:none}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap}
+.thumbs button{border:0;padding:0;background:none;cursor:pointer;position:relative}
+.thumbs img{width:52px;height:52px;object-fit:cover;border-radius:6px;display:block}
+.thumbs button::after{content:"×";position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--coral);color:#fff;font-size:12px;line-height:18px;text-align:center}
+.tog{appearance:none;width:38px;height:22px;border-radius:999px;background:var(--line);position:relative;cursor:pointer;border:0;padding:0;flex:none}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--surface);transition:left .15s}
+.tog:checked{background:var(--accent)}
+.tog:checked::after{left:19px}
+.note{font-size:.78rem;color:var(--muted);background:var(--beige);border-radius:8px;padding:10px 12px;margin:0}
+.alert{font-size:.8rem;background:var(--coral-soft);border-left:3px solid var(--coral);border-radius:6px;padding:10px 12px;margin:0;color:var(--fg)}
+.info{font-size:.8rem;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:6px;padding:10px 12px;margin:0;color:var(--fg)}
+.alert ul,.info ul{margin:4px 0 0;padding-left:18px}
+.info a{color:var(--accent-strong);font-weight:600}
+aside{position:sticky;top:max(16px,env(safe-area-inset-top,0px))}
+@media (max-width:900px){aside{position:static}}
+.big{display:flex;flex-direction:column;gap:2px}
+.big .lab{font-size:.74rem;font-weight:600;color:var(--muted)}
+.big .val{font-size:2.1rem;font-weight:800;color:var(--head);font-variant-numeric:tabular-nums;line-height:1.1;white-space:nowrap}
+.range{position:relative;height:10px;border-radius:999px;background:linear-gradient(90deg,var(--accent-soft),var(--accent),var(--accent-strong))}
+.range i{position:absolute;top:-4px;width:4px;height:18px;border-radius:2px;background:var(--fg)}
+.rlab{display:flex;justify-content:space-between;font-size:.78rem;font-variant-numeric:tabular-nums;color:var(--muted)}
+.rlab b{color:var(--fg);font-weight:700}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:.84rem;margin:0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kv .hl{color:var(--accent-strong)}
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:.78rem}
+.bar .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .v{font-variant-numeric:tabular-nums;font-weight:600}
+.bar .track{grid-column:1/3;height:6px;border-radius:999px;background:var(--accent-soft)}
+.bar .fill{height:100%;border-radius:999px;background:var(--accent)}
+.cta{font-family:var(--font);font-weight:700;font-style:italic;font-size:.9rem;background:var(--accent);color:#000;border:0;border-radius:999px;padding:11px 18px;cursor:pointer;width:100%}
+.cta:hover{background:var(--accent-strong);color:#fff}
+.cta:disabled{opacity:.5;cursor:default}
+.cta.sec{background:transparent;border:1.5px solid var(--accent);color:var(--fg)}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.btnrow .cta{flex:1 1 160px}
+.ghost{font-family:var(--font);font-weight:600;font-size:.8rem;background:transparent;color:var(--muted);border:0;cursor:pointer;text-decoration:underline;padding:4px}
+.ghost.danger{color:var(--coral)}
+.legal a{color:var(--accent-strong)}
+.legal{font-size:.72rem;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;margin:0}
+.toast{font-size:.78rem;color:var(--accent-strong);font-weight:600;min-height:1.2em;text-align:center;margin:0}
+textarea{min-height:170px;font-size:.82rem;line-height:1.55}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.8rem}
+table.wide{min-width:600px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td input{padding:4px 6px;font-size:.8rem;width:84px}
+td input.w{width:100%;min-width:160px}
+.cmp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cmp .box{border:1.5px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.cmp .box.b{border-color:var(--accent)}
+.cmp .box .t{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.cmp .box .v{font-size:1.35rem;font-weight:800;color:var(--head);font-variant-numeric:tabular-nums}
+.cmp .box small{color:var(--muted);font-size:.74rem}
+.chip{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent-strong);white-space:nowrap}
+.chip.warn{background:var(--coral-soft);color:var(--coral)}
+.chip.ok{background:var(--accent-soft);color:var(--ok)}
+.empty{color:var(--muted);font-size:.85rem;text-align:center;padding:20px 8px;margin:0}
+.mbar{display:none}
+@media (max-width:900px){
+  .mbar.show{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);
+    padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+    justify-content:space-between;align-items:center;gap:12px}
+  .mbar .v{font-weight:800;font-size:1.15rem;color:var(--head);font-variant-numeric:tabular-nums}
+  .mbar .l{font-size:.7rem;color:var(--muted)}
+  .mbar .cta{width:auto}
+  .cmp{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+.auth{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.auth .card{max-width:420px;width:100%}
+.auth svg{height:30px;width:auto;fill:var(--accent)}
+.who{font-size:.74rem;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.foot{font-size:.72rem;color:var(--muted);text-align:center;margin-top:24px}
+.foot a{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div class="auth" id="authScreen" hidden>
+  <section class="card">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 32" fill="#00b4ec" role="img" aria-label="iad"><path d="M17.309,21.608c-0,-1.549 1.263,-2.805 2.821,-2.805l5.17,-0c1.558,-0 2.822,1.256 2.822,2.805c-0,1.55 -1.264,2.806 -2.822,2.806l-5.17,0c-1.558,0 -2.821,-1.256 -2.821,-2.806Zm-13.535,-21.608c2.084,0 3.773,1.68 3.773,3.752c0,2.072 -1.689,3.752 -3.773,3.752c-2.084,-0 -3.774,-1.68 -3.774,-3.752c-0,-2.072 1.69,-3.752 3.774,-3.752Zm46.201,0.01c8.949,0.056 16.185,7.286 16.185,16.197c0,6.782 -4.191,12.584 -10.128,14.998c-3.515,1.428 -8.049,1.199 -9.337,1.199l0,-0.188c0,-2.903 2.395,-5.021 5.274,-5.511c0.7,-0.119 1.379,-0.292 1.991,-0.54c3.95,-1.606 6.725,-5.463 6.725,-9.958c0,-5.916 -4.804,-10.716 -10.745,-10.753l-4.84,-0c-0.419,-0 -0.759,0.338 -0.759,0.755l-0,20.312c-0,3.221 -2.626,5.832 -5.866,5.832c-2.334,0 -4.446,-1.376 -5.378,-3.504l-9.93,-22.683c-0.165,-0.375 -0.699,-0.376 -0.865,-0.001l-10.053,22.711c-0.936,2.113 -3.038,3.477 -5.361,3.477c-3.238,0 -5.862,-2.612 -5.857,-5.831l0.024,-16.159c3.012,0 5.457,2.422 5.47,5.416l0.041,9.929c0.002,0.507 0.701,0.65 0.905,0.184l9.738,-22.268c0.941,-2.151 3.076,-3.542 5.435,-3.542c2.359,-0 4.463,1.37 5.415,3.497l9.959,22.255c0.207,0.463 0.903,0.316 0.903,-0.191l0,-19.814c0,-3.214 2.621,-5.819 5.853,-5.819l5.096,-0l0.105,-0Z"></path><path d="M118.474,23.252c0.515,0.488 0.918,1.058 1.208,1.709c0.29,0.651 0.436,1.381 0.436,2.156c-0,0.776 -0.146,1.495 -0.436,2.156c-0.291,0.662 -0.693,1.234 -1.208,1.716c-0.516,0.483 -1.121,0.858 -1.816,1.127c-0.696,0.268 -1.443,0.403 -2.274,0.403c-0.831,-0 -1.598,-0.134 -2.304,-0.403c-0.705,-0.269 -1.315,-0.647 -1.83,-1.134c-0.516,-0.488 -0.916,-1.06 -1.201,-1.717c-0.285,-0.656 -0.428,-1.372 -0.428,-2.148c-0,-0.776 0.143,-1.492 0.428,-2.149c0.285,-0.657 0.688,-1.229 1.208,-1.716c0.52,-0.488 1.131,-0.866 1.831,-1.134c0.701,-0.268 1.451,-0.403 2.281,-0.403c0.831,-0 1.593,0.134 2.289,0.403c0.695,0.268 1.301,0.646 1.816,1.134Zm-1.066,5.222c0.166,-0.408 0.248,-0.86 0.248,-1.358c-0,-0.497 -0.082,-0.95 -0.248,-1.358c-0.165,-0.408 -0.395,-0.761 -0.69,-1.059c-0.296,-0.299 -0.644,-0.528 -1.043,-0.687c-0.401,-0.159 -0.836,-0.238 -1.306,-0.238c-0.47,-0 -0.903,0.079 -1.298,0.238c-0.396,0.16 -0.743,0.388 -1.043,0.687c-0.3,0.298 -0.533,0.651 -0.698,1.059c-0.165,0.408 -0.247,0.871 -0.247,1.358c-0,0.487 0.082,0.938 0.247,1.35c0.165,0.413 0.396,0.769 0.69,1.067c0.296,0.299 0.644,0.528 1.043,0.687c0.401,0.159 0.836,0.238 1.306,0.238c0.471,0 0.903,-0.079 1.299,-0.238c0.395,-0.159 0.743,-0.389 1.043,-0.687c0.3,-0.298 0.533,-0.651 0.697,-1.059Zm-28.625,-6.579l1.996,-0l0.031,10.445l-2.282,-0l-0.013,-6.269l-3.093,5.165l-1.096,-0l-3.077,-5.031l0,6.135l-2.28,-0l-0,-10.446l2.011,0l3.935,6.486l3.868,-6.486Zm15.082,0l1.996,0l0.031,10.446l-2.282,-0l-0.014,-6.269l-3.092,5.165l-1.096,-0l-3.077,-5.031l0,6.135l-2.28,-0l-0,-10.446l2.01,0l3.935,6.486l3.869,-6.486Zm-28.289,0l-0,10.446l-2.432,-0l0,-10.446l2.432,0Zm61.711,0l-0,10.446l-2.432,-0l-0,-10.446l2.432,0Zm21.293,6.088l-0,2.418l5.718,-0l-0,1.94l-8.134,-0l-0,-10.446l7.939,0l-0,1.94l-5.523,0l-0,2.268l4.878,0l-0,1.88l-4.878,0Zm17.783,4.356l-2.626,-0l-2.017,-2.911l-0.114,0.001l-2.116,0l-0,2.91l-2.431,-0l-0,-10.445l4.547,-0c0.94,-0 1.75,0.151 2.431,0.455c0.68,0.303 1.206,0.738 1.576,1.305c0.37,0.568 0.555,1.254 0.555,2.03c-0,0.776 -0.185,1.445 -0.555,2.007c-0.371,0.562 -0.896,0.992 -1.576,1.291l-0.021,0.008l2.347,3.349Zm-3.212,-7.998c-0.37,-0.318 -0.93,-0.477 -1.68,-0.477l-1.982,0l-0,3.641l1.982,-0c0.75,-0 1.31,-0.162 1.68,-0.485c0.37,-0.324 0.555,-0.759 0.555,-1.336c-0,-0.577 -0.185,-1.024 -0.555,-1.343Zm-30.267,-2.446l-0,8.476l5.268,-0l-0,1.97l-7.699,-0l-0,-10.446l2.431,0Zm10.266,0l-0,10.446l-2.431,-0l-0,-10.446l2.431,0Zm-22.437,5.11c0.51,0.213 0.908,0.529 1.193,0.947c0.286,0.418 0.428,0.93 0.428,1.537c-0,0.895 -0.355,1.594 -1.066,2.096c-0.71,0.502 -1.756,0.754 -3.136,0.754l-5.433,-0l-0,-10.445l5.133,-0c1.32,-0 2.313,0.249 2.979,0.746c0.665,0.497 0.998,1.154 0.998,1.97c-0,0.547 -0.135,1.022 -0.405,1.425c-0.244,0.364 -0.57,0.652 -0.977,0.865c0.097,0.032 0.193,0.066 0.286,0.105Zm-1.328,3.208c0.325,-0.204 0.487,-0.54 0.487,-0.978c-0,-0.437 -0.162,-0.763 -0.487,-0.977c-0.325,-0.214 -0.803,-0.321 -1.433,-0.321l-2.837,-0l-0,2.582l2.837,-0c0.63,-0 1.108,-0.102 1.433,-0.306Zm-1.854,-6.499l-2.416,0l-0,2.462l2.416,0c0.591,0 1.043,-0.101 1.358,-0.305c0.316,-0.204 0.473,-0.525 0.473,-0.933c-0,-0.408 -0.157,-0.714 -0.473,-0.918c-0.315,-0.203 -0.768,-0.306 -1.358,-0.306Z"></path></svg>
+    <h1>Simulateur Travaux</h1>
+    <p class="sub">Accès réservé aux conseillers de l'équipe.</p>
+    <button class="cta" id="googleBtn">Continuer avec Google</button>
+    <label class="f">Ou recevez un lien de connexion par e-mail<input id="authEmail" type="email" autocomplete="email" placeholder="prenom.nom@iadfrance.fr"></label>
+    <button class="cta sec" id="linkBtn">Recevoir le lien</button>
+    <p class="toast" id="authMsg" role="status"></p>
+    <p class="legal">En vous connectant, vous acceptez les <a href="./mentions-legales.html">mentions légales</a>.</p>
+  </section>
+</div>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 32" fill="#00b4ec" role="img" aria-label="iad"><path d="M17.309,21.608c-0,-1.549 1.263,-2.805 2.821,-2.805l5.17,-0c1.558,-0 2.822,1.256 2.822,2.805c-0,1.55 -1.264,2.806 -2.822,2.806l-5.17,0c-1.558,0 -2.821,-1.256 -2.821,-2.806Zm-13.535,-21.608c2.084,0 3.773,1.68 3.773,3.752c0,2.072 -1.689,3.752 -3.773,3.752c-2.084,-0 -3.774,-1.68 -3.774,-3.752c-0,-2.072 1.69,-3.752 3.774,-3.752Zm46.201,0.01c8.949,0.056 16.185,7.286 16.185,16.197c0,6.782 -4.191,12.584 -10.128,14.998c-3.515,1.428 -8.049,1.199 -9.337,1.199l0,-0.188c0,-2.903 2.395,-5.021 5.274,-5.511c0.7,-0.119 1.379,-0.292 1.991,-0.54c3.95,-1.606 6.725,-5.463 6.725,-9.958c0,-5.916 -4.804,-10.716 -10.745,-10.753l-4.84,-0c-0.419,-0 -0.759,0.338 -0.759,0.755l-0,20.312c-0,3.221 -2.626,5.832 -5.866,5.832c-2.334,0 -4.446,-1.376 -5.378,-3.504l-9.93,-22.683c-0.165,-0.375 -0.699,-0.376 -0.865,-0.001l-10.053,22.711c-0.936,2.113 -3.038,3.477 -5.361,3.477c-3.238,0 -5.862,-2.612 -5.857,-5.831l0.024,-16.159c3.012,0 5.457,2.422 5.47,5.416l0.041,9.929c0.002,0.507 0.701,0.65 0.905,0.184l9.738,-22.268c0.941,-2.151 3.076,-3.542 5.435,-3.542c2.359,-0 4.463,1.37 5.415,3.497l9.959,22.255c0.207,0.463 0.903,0.316 0.903,-0.191l0,-19.814c0,-3.214 2.621,-5.819 5.853,-5.819l5.096,-0l0.105,-0Z"></path><path d="M118.474,23.252c0.515,0.488 0.918,1.058 1.208,1.709c0.29,0.651 0.436,1.381 0.436,2.156c-0,0.776 -0.146,1.495 -0.436,2.156c-0.291,0.662 -0.693,1.234 -1.208,1.716c-0.516,0.483 -1.121,0.858 -1.816,1.127c-0.696,0.268 -1.443,0.403 -2.274,0.403c-0.831,-0 -1.598,-0.134 -2.304,-0.403c-0.705,-0.269 -1.315,-0.647 -1.83,-1.134c-0.516,-0.488 -0.916,-1.06 -1.201,-1.717c-0.285,-0.656 -0.428,-1.372 -0.428,-2.148c-0,-0.776 0.143,-1.492 0.428,-2.149c0.285,-0.657 0.688,-1.229 1.208,-1.716c0.52,-0.488 1.131,-0.866 1.831,-1.134c0.701,-0.268 1.451,-0.403 2.281,-0.403c0.831,-0 1.593,0.134 2.289,0.403c0.695,0.268 1.301,0.646 1.816,1.134Zm-1.066,5.222c0.166,-0.408 0.248,-0.86 0.248,-1.358c-0,-0.497 -0.082,-0.95 -0.248,-1.358c-0.165,-0.408 -0.395,-0.761 -0.69,-1.059c-0.296,-0.299 -0.644,-0.528 -1.043,-0.687c-0.401,-0.159 -0.836,-0.238 -1.306,-0.238c-0.47,-0 -0.903,0.079 -1.298,0.238c-0.396,0.16 -0.743,0.388 -1.043,0.687c-0.3,0.298 -0.533,0.651 -0.698,1.059c-0.165,0.408 -0.247,0.871 -0.247,1.358c-0,0.487 0.082,0.938 0.247,1.35c0.165,0.413 0.396,0.769 0.69,1.067c0.296,0.299 0.644,0.528 1.043,0.687c0.401,0.159 0.836,0.238 1.306,0.238c0.471,0 0.903,-0.079 1.299,-0.238c0.395,-0.159 0.743,-0.389 1.043,-0.687c0.3,-0.298 0.533,-0.651 0.697,-1.059Zm-28.625,-6.579l1.996,-0l0.031,10.445l-2.282,-0l-0.013,-6.269l-3.093,5.165l-1.096,-0l-3.077,-5.031l0,6.135l-2.28,-0l-0,-10.446l2.011,0l3.935,6.486l3.868,-6.486Zm15.082,0l1.996,0l0.031,10.446l-2.282,-0l-0.014,-6.269l-3.092,5.165l-1.096,-0l-3.077,-5.031l0,6.135l-2.28,-0l-0,-10.446l2.01,0l3.935,6.486l3.869,-6.486Zm-28.289,0l-0,10.446l-2.432,-0l0,-10.446l2.432,0Zm61.711,0l-0,10.446l-2.432,-0l-0,-10.446l2.432,0Zm21.293,6.088l-0,2.418l5.718,-0l-0,1.94l-8.134,-0l-0,-10.446l7.939,0l-0,1.94l-5.523,0l-0,2.268l4.878,0l-0,1.88l-4.878,0Zm17.783,4.356l-2.626,-0l-2.017,-2.911l-0.114,0.001l-2.116,0l-0,2.91l-2.431,-0l-0,-10.445l4.547,-0c0.94,-0 1.75,0.151 2.431,0.455c0.68,0.303 1.206,0.738 1.576,1.305c0.37,0.568 0.555,1.254 0.555,2.03c-0,0.776 -0.185,1.445 -0.555,2.007c-0.371,0.562 -0.896,0.992 -1.576,1.291l-0.021,0.008l2.347,3.349Zm-3.212,-7.998c-0.37,-0.318 -0.93,-0.477 -1.68,-0.477l-1.982,0l-0,3.641l1.982,-0c0.75,-0 1.31,-0.162 1.68,-0.485c0.37,-0.324 0.555,-0.759 0.555,-1.336c-0,-0.577 -0.185,-1.024 -0.555,-1.343Zm-30.267,-2.446l-0,8.476l5.268,-0l-0,1.97l-7.699,-0l-0,-10.446l2.431,0Zm10.266,0l-0,10.446l-2.431,-0l-0,-10.446l2.431,0Zm-22.437,5.11c0.51,0.213 0.908,0.529 1.193,0.947c0.286,0.418 0.428,0.93 0.428,1.537c-0,0.895 -0.355,1.594 -1.066,2.096c-0.71,0.502 -1.756,0.754 -3.136,0.754l-5.433,-0l-0,-10.445l5.133,-0c1.32,-0 2.313,0.249 2.979,0.746c0.665,0.497 0.998,1.154 0.998,1.97c-0,0.547 -0.135,1.022 -0.405,1.425c-0.244,0.364 -0.57,0.652 -0.977,0.865c0.097,0.032 0.193,0.066 0.286,0.105Zm-1.328,3.208c0.325,-0.204 0.487,-0.54 0.487,-0.978c-0,-0.437 -0.162,-0.763 -0.487,-0.977c-0.325,-0.214 -0.803,-0.321 -1.433,-0.321l-2.837,-0l-0,2.582l2.837,-0c0.63,-0 1.108,-0.102 1.433,-0.306Zm-1.854,-6.499l-2.416,0l-0,2.462l2.416,0c0.591,0 1.043,-0.101 1.358,-0.305c0.316,-0.204 0.473,-0.525 0.473,-0.933c-0,-0.408 -0.157,-0.714 -0.473,-0.918c-0.315,-0.203 -0.768,-0.306 -1.358,-0.306Z"></path></svg>
+      <span class="sep" aria-hidden="true"></span>
+      <div>
+        <h1>Simulateur Travaux</h1>
+        <p class="sub">Ordre de grandeur des travaux pendant la visite</p>
+      </div>
+    </div>
+    <div class="col" style="gap:4px;align-items:flex-end">
+      <span class="sync" id="sync"><i></i><span id="syncTxt">Grille par défaut</span></span>
+      <span class="who" id="who" hidden><span id="whoTxt"></span><button class="ghost" id="logout">Se déconnecter</button></span>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Sections">
+    <a href="#simulation" data-tab="simulation">Simulation</a>
+    <a href="#aides" data-tab="aides">Aides acquéreur</a>
+    <a href="#negociation" data-tab="negociation">Négociation</a>
+    <a href="#historique" data-tab="historique">Historique</a>
+    <a href="#grille" data-tab="grille">Grille et calibration</a>
+  </nav>
+
+  <div class="grid" id="mainGrid">
+    <div class="col">
+
+      <!-- ===== SIMULATION ===== -->
+      <div class="col" data-view="simulation">
+        <div class="presets">
+          <span>Exemples</span>
+          <button class="pill" data-preset="appart">Appartement à rafraîchir</button>
+          <button class="pill" data-preset="maison70">Maison années 70</button>
+          <button class="pill" data-preset="rehab">Maison à réhabiliter</button>
+        </div>
+        <section class="card" aria-labelledby="h-bien">
+          <p class="eyebrow">Étape 1</p>
+          <h2 id="h-bien">Le bien</h2>
+          <div class="seg typeseg" role="group" aria-label="Type de bien" id="type">
+            <button data-v="maison" aria-pressed="true">Maison</button>
+            <button data-v="appartement" aria-pressed="false">Appartement</button>
+          </div>
+          <div class="fields">
+            <label class="f" style="grid-column:1/-1">Référence du bien (adresse ou n° de mandat)<input id="ref" type="text" placeholder="Ex. 12 rue des Lilas, Narbonne"></label>
+            <label class="f">Surface habitable (m²)<input id="surface" type="number" min="10" step="1" inputmode="numeric"></label>
+            <label class="f">Niveaux<input id="niveaux" type="number" min="1" max="4" step="1" inputmode="numeric"></label>
+            <label class="f">Année de construction<input id="annee" type="number" min="1700" max="2030" step="1" inputmode="numeric"></label>
+            <label class="f">Salles de bain<input id="sdb" type="number" min="0" max="5" step="1" inputmode="numeric"></label>
+            <label class="f">Prix affiché (€)<input id="prix" type="number" min="0" step="1000" inputmode="numeric" placeholder="facultatif"></label>
+            <label class="f">Code postal<input id="cp" type="text" inputmode="numeric" maxlength="5" placeholder="ex. 11100"></label>
+            <label class="f">Département<select id="dept"></select></label>
+            <label class="f">Type de zone<select id="zone"></select></label>
+            <label class="f">Accès chantier
+              <select id="acces">
+                <option value="1">Normal</option>
+                <option value="1.1">Contraint (centre ancien, étage)</option>
+              </select></label>
+            <label class="f" id="assainWrap">Eaux usées
+              <select id="assain">
+                <option value="collectif">Tout-à-l'égout</option>
+                <option value="anc">Assainissement individuel</option>
+                <option value="nc">Non connu</option>
+              </select></label>
+          </div>
+          <div id="diag" class="col" style="gap:10px"></div>
+        </section>
+
+        <section class="card" aria-labelledby="h-trav">
+          <p class="eyebrow">Étape 2</p>
+          <h2 id="h-trav">Les travaux</h2>
+          <p class="note">Activez les postes concernés, choisissez le niveau et la gamme. Les quantités sont calculées depuis la surface ; corrigez-les si vous les connaissez. Ajoutez des photos prises pendant la visite : elles figureront dans le PDF.</p>
+          <div id="postes"></div>
+          <div id="aides"></div>
+        </section>
+      </div>
+
+
+      <!-- ===== AIDES ACQUÉREUR ===== -->
+      <div class="col" data-view="aides" hidden>
+        <section class="card">
+          <p class="eyebrow">Profil de l'acquéreur</p>
+          <h2>Les informations qui déterminent les aides</h2>
+          <div class="fields">
+            <label class="f">Personnes dans le foyer<input id="a-pers" type="number" min="1" max="12" step="1" inputmode="numeric"></label>
+            <label class="f">Revenu fiscal de référence (€)<input id="a-rfr" type="number" min="0" step="100" inputmode="numeric" placeholder="avis d'imposition"></label>
+            <label class="f">Usage du logement
+              <select id="a-rp"><option value="1">Résidence principale</option><option value="0">Résidence secondaire / autre</option></select></label>
+            <label class="f">DPE actuel<select id="dpe"><option value="">Non connu</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select></label>
+            <label class="f">Classe visée après travaux<select id="dpeCible"><option value="">À définir</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></label>
+            <label class="f">Chauffage après travaux
+              <select id="a-chauf">
+                <option value="pac_ae">Pompe à chaleur air/eau</option>
+                <option value="pac_geo">Pompe à chaleur géothermique</option>
+                <option value="gaz">Chaudière gaz conservée ou installée</option>
+                <option value="autre">Autre ou inchangé</option>
+              </select></label>
+            <label class="f">Prime CEE annoncée (€)<input id="a-cee" type="number" min="0" step="50" inputmode="numeric" placeholder="selon devis"></label>
+            <label class="f">Dépenses éligibles HT (€)<input id="a-elig" type="number" min="0" step="500" inputmode="numeric"></label>
+          </div>
+          <div class="btnrow">
+            <label class="qty"><input type="checkbox" id="a-fioul" style="width:auto"> Dépose d'une cuve à fioul</label>
+            <label class="qty"><input type="checkbox" id="a-audit" style="width:auto"> Audit énergétique réalisé</label>
+          </div>
+          <p class="note">Les dépenses éligibles reprennent par défaut les postes énergétiques et les menuiseries de la simulation. La prime CEE varie selon le fournisseur d'énergie : saisissez le montant figurant sur le devis de l'artisan.</p>
+        </section>
+
+        <section class="card" aria-live="polite">
+          <p class="eyebrow">Estimation</p>
+          <h2>Aides possibles pour ce projet</h2>
+          <div id="aidesOut"></div>
+          <p class="legal">Barème MaPrimeRénov' et éco-PTZ publié sur service-public.gouv.fr (page vérifiée le 1er septembre 2026). Estimation indicative : seuls l'Anah et un conseiller France Rénov' (0 808 800 700) confirment l'éligibilité et le montant. Le dispositif peut être suspendu ou modifié en cours d'année, comme en janvier 2026.
+          Sources : <a href="https://www.service-public.gouv.fr/particuliers/vosdroits/F35083" target="_blank" rel="noopener">MaPrimeRénov'</a> · <a href="https://www.service-public.gouv.fr/particuliers/vosdroits/F19905" target="_blank" rel="noopener">éco-PTZ</a> · <a href="https://france-renov.gouv.fr" target="_blank" rel="noopener">France Rénov'</a></p>
+        </section>
+      </div>
+      <!-- ===== NÉGOCIATION ===== -->
+      <div class="col" data-view="negociation" hidden>
+        <section class="card">
+          <p class="eyebrow">Comparer</p>
+          <h2>Deux scénarios côte à côte</h2>
+          <p class="note">Mémorisez la simulation actuelle comme scénario A (par exemple un rafraîchissement minimal), modifiez les travaux dans l'onglet Simulation, puis revenez ici comparer avec le scénario B.</p>
+          <div class="btnrow"><button class="cta sec" id="saveA">Mémoriser la simulation actuelle comme scénario A</button></div>
+          <div id="cmp"></div>
+        </section>
+
+        <section class="card">
+          <p class="eyebrow">Côté vendeur</p>
+          <h2>Argumentaire de prix</h2>
+          <div class="fields">
+            <label class="f">Prix de marché d'un bien comparable rénové (€)<input id="marche" type="number" min="0" step="1000" inputmode="numeric" placeholder="ex. 260000"></label>
+          </div>
+          <dl class="kv" id="vendKv"></dl>
+          <textarea id="vendTxt" aria-label="Argumentaire vendeur"></textarea>
+          <button class="cta sec" data-copy="vendTxt">Copier l'argumentaire</button>
+        </section>
+
+        <section class="card">
+          <p class="eyebrow">Côté acquéreur</p>
+          <h2>Rassurer sur le budget</h2>
+          <div class="fields">
+            <label class="f">Taux du crédit (%)<input id="taux" type="number" min="0" max="15" step="0.05" inputmode="decimal"></label>
+            <label class="f">Durée (ans)<input id="duree" type="number" min="5" max="30" step="1" inputmode="numeric"></label>
+          </div>
+          <dl class="kv" id="acqKv"></dl>
+          <p class="note">Le taux est à ajuster selon les conditions du jour (hors assurance). Le DPE et les aides se renseignent dans l'onglet « Aides acquéreur ».</p>
+          <textarea id="acqTxt" aria-label="Message acquéreur"></textarea>
+          <button class="cta sec" data-copy="acqTxt">Copier le message acquéreur</button>
+        </section>
+      </div>
+
+      <!-- ===== HISTORIQUE ===== -->
+      <div class="col" data-view="historique" hidden>
+        <section class="card">
+          <p class="eyebrow">Mes simulations</p>
+          <h2>Historique par bien</h2>
+          <p class="note">Chaque conseiller voit uniquement ses propres simulations. Après la vente, saisissez le montant réel des travaux : ces retours terrain affinent la grille de toute l'équipe.</p>
+          <div id="histo"><p class="empty">Chargement…</p></div>
+        </section>
+      </div>
+
+      <!-- ===== GRILLE ===== -->
+      <div class="col" data-view="grille" hidden>
+        <section class="card">
+          <p class="eyebrow">Référence commune</p>
+          <h2>Grille de prix de l'équipe</h2>
+          <p class="note" id="grilleNote">Prix unitaires HT en gamme standard. Cette grille est la même pour tous les conseillers ; seuls les responsables peuvent la modifier.</p>
+          <div class="fields">
+            <label class="f">Aléas (%)<input id="p-aleas" type="number" min="0" max="40" step="1"></label>
+            <label class="f">Fourchette basse (×)<input id="p-low" type="number" min="0.5" max="1" step="0.01"></label>
+            <label class="f">Fourchette haute (×)<input id="p-high" type="number" min="1" max="2" step="0.01"></label>
+            <label class="f">Gamme éco (×)<input id="p-g0" type="number" min="0.5" max="1" step="0.05"></label>
+            <label class="f">Gamme qualitative (×)<input id="p-g2" type="number" min="1" max="2" step="0.05"></label>
+          </div>
+          <div class="tbl"><table class="wide">
+            <thead><tr><th>Poste</th><th>Unité</th><th class="n">Rafraîchir</th><th class="n">Rénover</th><th class="n">Refaire</th><th class="n">TVA %</th></tr></thead>
+            <tbody id="grilleBody"></tbody>
+          </table></div>
+        </section>
+
+        <section class="card">
+          <p class="eyebrow">Calibration</p>
+          <h2>Coefficients géographiques</h2>
+          <p class="note">Le prix final d'un poste = prix de la grille × coefficient de la région × coefficient du type de zone × accès chantier. La colonne « Suggéré » se calcule à partir des retours terrain (montant réel ÷ estimation médiane), dès 3 retours.</p>
+          <h3 class="sm">Par région</h3>
+          <div class="tbl"><table class="wide">
+            <thead><tr><th>Région</th><th class="n">Coefficient</th><th class="n">Retours</th><th class="n">Écart médian</th><th class="n">Suggéré</th><th></th></tr></thead>
+            <tbody id="regionsBody"></tbody>
+          </table></div>
+          <h3 class="sm">Par type de zone</h3>
+          <div class="tbl"><table class="wide">
+            <thead><tr><th>Type de zone</th><th class="n">Coefficient</th><th class="n">Retours</th><th class="n">Écart médian</th><th class="n">Suggéré</th><th></th></tr></thead>
+            <tbody id="zonesBody"></tbody>
+          </table></div>
+          <div class="btnrow">
+            <button class="cta" id="publishGrid">Publier la grille pour l'équipe</button>
+            <button class="cta sec" id="resetGrid">Revenir aux valeurs par défaut</button>
+          </div>
+          <p class="toast" id="gridToast" role="status"></p>
+        </section>
+
+        <section class="card">
+          <p class="eyebrow">Retours terrain</p>
+          <h2>Estimations comparées au réel</h2>
+          <div id="retours"><p class="empty">Chargement…</p></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ===== RÉSULTAT ===== -->
+    <aside id="result">
+      <section class="card" aria-labelledby="h-res">
+        <p class="eyebrow">Étape 3</p>
+        <h2 id="h-res">Estimation</h2>
+        <div class="big"><span class="lab">Montant médian TTC</span><span class="val" id="r-med">—</span></div>
+        <div>
+          <div class="range" aria-hidden="true"><i id="rmark"></i></div>
+          <div class="rlab" style="margin-top:6px"><span>Basse <b id="r-low">—</b></span><span>Haute <b id="r-high">—</b></span></div>
+        </div>
+        <dl class="kv">
+          <dt>Total HT (aléas inclus)</dt><dd id="r-ht">—</dd>
+          <dt>Coût au m² habitable</dt><dd id="r-m2">—</dd>
+          <dt id="r-prix-l" hidden>Prix affiché</dt><dd id="r-prix" hidden>—</dd>
+          <dt id="r-net-l" hidden>Prix + travaux (médian)</dt><dd id="r-net" class="hl" hidden>—</dd>
+        </dl>
+        <div class="bars" id="bars"></div>
+        <label class="f">Conseiller<input id="conseiller" type="text" placeholder="Prénom Nom"></label>
+        <label class="f">Téléphone<input id="tel" type="tel" placeholder="06 00 00 00 00"></label>
+        <button class="cta" id="pdf">Télécharger la synthèse PDF</button>
+        <div class="btnrow">
+          <button class="cta sec" id="save">Enregistrer</button>
+          <button class="cta sec" id="copy">Copier le texte</button>
+        </div>
+        <p class="toast" id="toast" role="status"></p>
+        <textarea id="fallback" hidden aria-label="Texte à copier"></textarea>
+        <p class="legal">Estimation indicative et non contractuelle. Elle ne remplace pas un devis établi par un professionnel du bâtiment ni un diagnostic technique.</p>
+        <button class="ghost" id="reset">Nouvelle simulation</button>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<p class="foot"><a href="./mentions-legales.html">Mentions légales et données personnelles</a></p>
+
+<div class="mbar" id="mbar">
+  <div><div class="l">Médian TTC</div><div class="v" id="m-med">—</div></div>
+  <button class="cta" id="m-go">Voir le détail</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="./config.js"></script>
+<script>
+/* =================== DONNÉES PAR DÉFAUT (indicatives, HT, gamme standard) =================== */
+const DEFAULT_GRID = {
+  toiture:{p:[30,70,160],tva:10}, facade:{p:[30,55,110],tva:10}, menuis:{p:[150,700,1100],tva:10},
+  combles:{p:[15,30,50],tva:5.5}, murs:{p:[40,70,130],tva:5.5}, chauffage:{p:[1500,6000,13000],tva:10},
+  vmc:{p:[300,1200,2500],tva:10}, elec:{p:[15,50,100],tva:10}, plomb:{p:[10,35,70],tva:10},
+  sols:{p:[20,50,90],tva:10}, peint:{p:[15,30,55],tva:10}, cuisine:{p:[2500,7000,14000],tva:10},
+  sdb:{p:[3000,8000,14000],tva:10}, wc:{p:[600,1500,2500],tva:10}, anc:{p:[1000,4000,9000],tva:10},
+  cloture:{p:[20,50,90],tva:10}
+};
+const DEFAULT_PARAMS = {aleas:10, low:0.85, high:1.20, g0:0.8, g2:1.35};
+const DEFAULT_REGIONS = [
+  {id:"idf",label:"Île-de-France",coef:1.15},{id:"ara",label:"Auvergne-Rhône-Alpes",coef:1.05},
+  {id:"paca",label:"Provence-Alpes-Côte d'Azur",coef:1.08},{id:"occ",label:"Occitanie",coef:1},
+  {id:"naq",label:"Nouvelle-Aquitaine",coef:1},{id:"bre",label:"Bretagne",coef:0.98},
+  {id:"pdl",label:"Pays de la Loire",coef:0.98},{id:"nor",label:"Normandie",coef:0.97},
+  {id:"hdf",label:"Hauts-de-France",coef:0.97},{id:"ge",label:"Grand Est",coef:0.98},
+  {id:"bfc",label:"Bourgogne-Franche-Comté",coef:0.95},{id:"cvl",label:"Centre-Val de Loire",coef:0.95},
+  {id:"cor",label:"Corse",coef:1.1},{id:"om",label:"Outre-mer",coef:1.25}
+];
+const DEFAULT_ZONES = [
+  {id:"metropole",label:"Grande métropole",coef:1.08},{id:"ville",label:"Ville moyenne",coef:1},
+  {id:"rural",label:"Commune rurale",coef:0.94},{id:"touristique",label:"Zone touristique (littoral, montagne)",coef:1.06}
+];
+const DEPTS = (`01 Ain ara|02 Aisne hdf|03 Allier ara|04 Alpes-de-Haute-Provence paca|05 Hautes-Alpes paca|06 Alpes-Maritimes paca|07 Ardèche ara|08 Ardennes ge|09 Ariège occ|10 Aube ge|11 Aude occ|12 Aveyron occ|13 Bouches-du-Rhône paca|14 Calvados nor|15 Cantal ara|16 Charente naq|17 Charente-Maritime naq|18 Cher cvl|19 Corrèze naq|2A Corse-du-Sud cor|2B Haute-Corse cor|21 Côte-d'Or bfc|22 Côtes-d'Armor bre|23 Creuse naq|24 Dordogne naq|25 Doubs bfc|26 Drôme ara|27 Eure nor|28 Eure-et-Loir cvl|29 Finistère bre|30 Gard occ|31 Haute-Garonne occ|32 Gers occ|33 Gironde naq|34 Hérault occ|35 Ille-et-Vilaine bre|36 Indre cvl|37 Indre-et-Loire cvl|38 Isère ara|39 Jura bfc|40 Landes naq|41 Loir-et-Cher cvl|42 Loire ara|43 Haute-Loire ara|44 Loire-Atlantique pdl|45 Loiret cvl|46 Lot occ|47 Lot-et-Garonne naq|48 Lozère occ|49 Maine-et-Loire pdl|50 Manche nor|51 Marne ge|52 Haute-Marne ge|53 Mayenne pdl|54 Meurthe-et-Moselle ge|55 Meuse ge|56 Morbihan bre|57 Moselle ge|58 Nièvre bfc|59 Nord hdf|60 Oise hdf|61 Orne nor|62 Pas-de-Calais hdf|63 Puy-de-Dôme ara|64 Pyrénées-Atlantiques naq|65 Hautes-Pyrénées occ|66 Pyrénées-Orientales occ|67 Bas-Rhin ge|68 Haut-Rhin ge|69 Rhône ara|70 Haute-Saône bfc|71 Saône-et-Loire bfc|72 Sarthe pdl|73 Savoie ara|74 Haute-Savoie ara|75 Paris idf|76 Seine-Maritime nor|77 Seine-et-Marne idf|78 Yvelines idf|79 Deux-Sèvres naq|80 Somme hdf|81 Tarn occ|82 Tarn-et-Garonne occ|83 Var paca|84 Vaucluse paca|85 Vendée pdl|86 Vienne naq|87 Haute-Vienne naq|88 Vosges ge|89 Yonne bfc|90 Territoire de Belfort bfc|91 Essonne idf|92 Hauts-de-Seine idf|93 Seine-Saint-Denis idf|94 Val-de-Marne idf|95 Val-d'Oise idf|971 Guadeloupe om|972 Martinique om|973 Guyane om|974 La Réunion om|976 Mayotte om`)
+  .split("|").map(x=>{const p=x.split(" ");return {code:p[0],name:p.slice(1,-1).join(" "),region:p[p.length-1]}});
+const deptOf = code => DEPTS.find(d=>d.code===code);
+function deptFromCp(cp){
+  cp=String(cp||"").trim(); if(!/^\d{5}$/.test(cp)) return null;
+  if(cp.startsWith("97")) return deptOf(cp.slice(0,3))?cp.slice(0,3):null;
+  if(cp.startsWith("20")) return +cp.slice(0,3)<202?"2A":"2B";
+  return deptOf(cp.slice(0,2))?cp.slice(0,2):null;
+}
+const clone = o => JSON.parse(JSON.stringify(o));
+const emprise = b => b.surface / Math.max(1,b.niveaux);
+const perim = b => 4*Math.sqrt(emprise(b))*1.1;
+const POSTES = [
+  {id:"toiture",fam:"Gros œuvre",label:"Toiture",unit:"m²",help:"surface de toiture",maison:1,q:b=>emprise(b)*1.3},
+  {id:"facade",fam:"Gros œuvre",label:"Façade / ravalement",unit:"m²",help:"surface de façade",maison:1,q:b=>perim(b)*b.niveaux*2.8},
+  {id:"menuis",fam:"Gros œuvre",label:"Menuiseries extérieures",unit:"u",help:"fenêtres et portes-fenêtres",q:b=>Math.ceil(b.surface/12)},
+  {id:"combles",fam:"Énergie",label:"Isolation des combles",unit:"m²",help:"surface de combles",maison:1,energie:1,q:b=>emprise(b)},
+  {id:"murs",fam:"Énergie",label:"Isolation des murs",unit:"m²",help:"murs extérieurs",energie:1,q:b=>b.type==="maison"?perim(b)*b.niveaux*2.5*0.85:b.surface*0.9},
+  {id:"chauffage",fam:"Énergie",label:"Chauffage / eau chaude",unit:"forfait",help:"entretien → pompe à chaleur",energie:1,q:()=>1},
+  {id:"vmc",fam:"Énergie",label:"Ventilation (VMC)",unit:"forfait",help:"",energie:1,q:()=>1},
+  {id:"elec",fam:"Second œuvre",label:"Électricité",unit:"m²",help:"mise en sécurité → réfection complète",q:b=>b.surface},
+  {id:"plomb",fam:"Second œuvre",label:"Plomberie",unit:"m²",help:"réseaux d'eau",q:b=>b.surface},
+  {id:"sols",fam:"Second œuvre",label:"Sols",unit:"m²",help:"",q:b=>b.surface},
+  {id:"peint",fam:"Second œuvre",label:"Murs, plafonds, peintures",unit:"m²",help:"surface peinte",q:b=>b.surface*2.7},
+  {id:"cuisine",fam:"Pièces techniques",label:"Cuisine",unit:"forfait",help:"",q:()=>1},
+  {id:"sdb",fam:"Pièces techniques",label:"Salle de bain",unit:"u",help:"par salle de bain",q:b=>Math.max(1,b.sdb)},
+  {id:"wc",fam:"Pièces techniques",label:"WC",unit:"u",help:"",q:()=>1},
+  {id:"anc",fam:"Extérieurs",label:"Assainissement individuel",unit:"forfait",help:"mise en conformité",maison:1,q:()=>1},
+  {id:"cloture",fam:"Extérieurs",label:"Clôture",unit:"ml",help:"mètres linéaires",maison:1,q:()=>40}
+];
+const NIV = ["Rafraîchir","Rénover","Refaire"], GAM = ["Éco","Standard","Qualitatif"];
+const PRESETS = {
+  appart:{bien:{type:"appartement",surface:55,niveaux:1,annee:1985,sdb:1,prix:149000,dept:"11",zone:"ville",cp:"",acces:"1.1",assain:"collectif"},ref:"Exemple · appartement T3",
+    on:{peint:[0,1],sols:[0,1],elec:[0,1],cuisine:[0,1],sdb:[0,1]}},
+  maison70:{bien:{type:"maison",surface:110,niveaux:1,annee:1974,sdb:1,prix:235000,dept:"34",zone:"ville",cp:"",acces:"1",assain:"collectif"},ref:"Exemple · maison années 70",dpe:["E","C"],aides:{pers:3,rfr:36000,chauf:"pac_ae",audit:true},
+    on:{combles:[1,1],menuis:[2,1],chauffage:[2,1],elec:[1,1],peint:[1,1],sols:[1,1],cuisine:[1,1],sdb:[1,1]}},
+  rehab:{bien:{type:"maison",surface:140,niveaux:2,annee:1930,sdb:1,prix:180000,dept:"11",zone:"rural",cp:"",acces:"1.1",assain:"anc"},ref:"Exemple · maison de village",dpe:["G","D"],aides:{pers:2,rfr:24000,chauf:"pac_ae",fioul:true,audit:true},
+    on:{toiture:[2,1],facade:[1,1],menuis:[2,1],combles:[2,1],murs:[1,1],chauffage:[2,1],vmc:[1,1],elec:[2,1],plomb:[2,1],sols:[2,1],peint:[2,1],cuisine:[2,1],sdb:[2,1],wc:[2,1],anc:[2,1]}}
+};
+
+/* =================== ÉTAT =================== */
+const ls = {get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const defaultCfg = () => ({grid:clone(DEFAULT_GRID), params:clone(DEFAULT_PARAMS), regions:clone(DEFAULT_REGIONS), zones:clone(DEFAULT_ZONES)});
+let cfg = defaultCfg();
+let draftCfg = null;           // copie éditée par un responsable avant publication
+let photos = {};               // {posteId:[dataUrl]} — en mémoire uniquement
+let scenarioA = null;
+let histo = [], retours = [];
+let db=null, user=null, uid=null, canEditGrid=false;
+const blankPostes = () => Object.fromEntries(POSTES.map(x=>[x.id,{on:false,niv:1,gam:1,q:null}]));
+function fromPreset(key){
+  const p=PRESETS[key], postes=blankPostes();
+  for(const id in p.on){postes[id]={on:true,niv:p.on[id][0],gam:p.on[id][1],q:null}}
+  const sim=Object.assign(baseSim(), {ref:p.ref, bien:Object.assign({},p.bien), postes});
+  if(p.dpe){sim.nego.dpe=p.dpe[0];sim.nego.dpeCible=p.dpe[1]}
+  if(p.aides) Object.assign(sim.aides,p.aides);
+  return sim;
+}
+function baseSim(){
+  return {id:null, ref:"", bien:{type:"maison",surface:100,niveaux:1,annee:"",sdb:1,prix:"",dept:"11",zone:"ville",cp:"",acces:"1",assain:"collectif"},
+    postes:blankPostes(), conseiller:(S&&S.conseiller)||"", tel:(S&&S.tel)||"",
+    nego:{marche:"",taux:3.5,duree:20,dpe:"",dpeCible:""},
+    aides:defaultAides()};
+}
+const defaultAides=()=>({pers:2,rfr:"",rp:true,chauf:"pac_ae",fioul:false,audit:false,cee:"",elig:""});
+let S = null;
+S = ls.get("st2-sim") || fromPreset("maison70");
+if(!S.bien.dept){S.bien.dept="11";S.bien.zone="ville";S.bien.cp="";delete S.bien.secteur}
+S.nego = Object.assign({marche:"",taux:3.5,duree:20,dpe:"",dpeCible:""}, S.nego||{});
+S.aides = Object.assign(defaultAides(), S.aides||{});
+
+/* =================== CALCUL (fonctions pures) =================== */
+const applies = (p,b) => !(p.maison && b.type!=="maison");
+const autoQty = (p,b) => Math.round(p.q(b)*10)/10;
+function regionOf(b){const d=deptOf(b.dept);return d?d.region:""}
+function coefOf(c,b){
+  const r=c.regions.find(x=>x.id===regionOf(b)), z=c.zones.find(x=>x.id===b.zone);
+  return (r?+r.coef||1:1)*(z?+z.coef||1:1);
+}
+function compute(s,c){
+  const b=s.bien, pr=c.params, gm=[pr.g0,1,pr.g2];
+  const coef=coefOf(c,b)*(+b.acces||1), al=1+pr.aleas/100;
+  let ht=0, ttc=0; const lines=[];
+  POSTES.forEach(p=>{
+    const st=s.postes[p.id]; if(!st||!st.on||!applies(p,b)) return;
+    const g=c.grid[p.id]||DEFAULT_GRID[p.id];
+    const q = st.q!=null&&st.q!=="" ? +st.q : autoQty(p,b);
+    const lht = q*g.p[st.niv]*gm[st.gam]*coef*al, lttc = lht*(1+g.tva/100);
+    ht+=lht; ttc+=lttc; lines.push({p,q,ht:lht,ttc:lttc,st});
+  });
+  return {ht,ttc,low:ttc*pr.low,high:ttc*pr.high,lines};
+}
+function mensualite(capital,tauxPct,ans){
+  const n=ans*12, r=tauxPct/100/12; if(!capital||!n) return 0;
+  return r===0 ? capital/n : capital*r/(1-Math.pow(1+r,-n));
+}
+const median = a => {if(!a.length)return null;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
+
+
+/* =================== BARÈME AIDES (service-public.gouv.fr, vérifié le 1er septembre 2026) =================== */
+const BAREME = {
+  date:"1er septembre 2026",
+  // Plafonds de revenu fiscal de référence : [très modestes, modestes, intermédiaires] pour 1..5 personnes, + par personne supplémentaire
+  rfr:{
+    hors:{base:[[17363,22259,31185],[25393,32553,45842],[30540,39148,55196],[35676,45735,64550],[40835,52348,73907]],add:[5151,6598,9357]},
+    idf:{base:[[24031,29253,40851],[35270,42933,60051],[42357,51564,71846],[49455,60208,84562],[56580,68877,96817]],add:[7116,8663,12257]}
+  },
+  cats:[{id:"bleu",label:"Très modestes",couleur:"Bleu"},{id:"jaune",label:"Modestes",couleur:"Jaune"},{id:"violet",label:"Intermédiaires",couleur:"Violet"},{id:"rose",label:"Supérieurs",couleur:"Rose"}],
+  // Parcours par geste : forfaits [bleu, jaune, violet, rose]
+  geste:{pac_ae:{label:"Pompe à chaleur air/eau",f:[5000,4000,3000,0]},pac_geo:{label:"Pompe à chaleur géothermique",f:[11000,9000,6000,0]},
+         fioul:{label:"Dépose d'une cuve à fioul",f:[1200,800,400,0]},audit:{label:"Audit énergétique",f:[500,400,300,0]}},
+  gestePlafond5ans:20000,
+  // Rénovation d'ampleur
+  ampleur:{taux:[0.8,0.6,0.45,0.10],plafond2:30000,plafond3:40000,ecretement:[1,0.9,0.8,0.5]},
+  mar:{taux:[1,0.8,0.4,0.2],plafond:2000},
+  // Éco-PTZ
+  ecoptz:{vitrage:7000,une:15000,deux:25000,trois:30000,global:50000,anc:10000,dureePonctuel:15,dureeGlobal:20}
+};
+const IDF_DEPTS=["75","77","78","91","92","93","94","95"];
+const DPE_ORDER="ABCDEFG";
+function categorieRevenus(pers,rfr,idf){
+  if(!(rfr>=0)||rfr===""||!pers) return null;
+  const t=BAREME.rfr[idf?"idf":"hors"], n=Math.max(1,Math.round(pers));
+  const lim=[0,1,2].map(i=>n<=5?t.base[n-1][i]:t.base[4][i]+(n-5)*t.add[i]);
+  const i=lim.findIndex(l=>rfr<=l); return i===-1?3:i;
+}
+function computeAides(s,r){
+  const b=s.bien, a=s.aides, idf=IDF_DEPTS.includes(b.dept), om=String(b.dept).startsWith("97");
+  const cat=categorieRevenus(+a.pers,a.rfr===""?NaN:+a.rfr,idf);
+  const age=b.annee?new Date().getFullYear()-(+b.annee):null;
+  const rp=a.rp!==false, out={cat,idf,om,age,warnings:[],geste:null,ampleur:null,mar:null,ecoptz:null};
+  const chaufLine=r.lines.find(l=>l.p.id==="chauffage");
+  // ----- Dépenses éligibles
+  const eligLines=r.lines.filter(l=>l.p.energie||l.p.id==="menuis");
+  const htSet=eligLines.reduce((x,l)=>x+l.ht,0), ttcSet=eligLines.reduce((x,l)=>x+l.ttc,0);
+  const htElig=a.elig!==""&&a.elig!=null?+a.elig:htSet, ttcElig=htSet>0?ttcSet*htElig/htSet:htElig*1.055;
+  out.htElig=htElig; out.htEligAuto=htSet;
+  const cee=+a.cee||0;
+  // ----- Parcours par geste
+  if(cat!=null){
+    const items=[];
+    if(chaufLine&&(a.chauf==="pac_ae"||a.chauf==="pac_geo")) items.push({k:a.chauf,ok:age==null||age>=2});
+    if(a.fioul) items.push({k:"fioul",ok:age==null||age>=15});
+    if(a.audit) items.push({k:"audit",ok:age==null||age>=15});
+    let total=0; const det=items.map(it=>{const g=BAREME.geste[it.k], m=it.ok&&rp?g.f[cat]:0; total+=m; return {label:g.label,montant:m}});
+    total=Math.min(total,BAREME.gestePlafond5ans);
+    let motif="";
+    if(!rp) motif="Réservé aux résidences principales.";
+    else if(cat===3) motif="Pas de forfait par geste pour les revenus supérieurs en métropole.";
+    else if(!items.length) motif="Aucun geste éligible : depuis 2026, l'isolation, les fenêtres et la ventilation ne sont plus financées par geste.";
+    out.geste={total:cat===3&&!om?0:total,det,motif};
+  }
+  // ----- Rénovation d'ampleur
+  if(cat!=null){
+    const reasons=[];
+    if(om) reasons.push("Non applicable en outre-mer.");
+    if(!rp) reasons.push("Réservée aux résidences principales.");
+    if(age!=null&&age<15) reasons.push("Le logement doit avoir au moins 15 ans.");
+    if(!s.nego.dpe) reasons.push("Renseignez le DPE actuel.");
+    else if(!"EFG".includes(s.nego.dpe)) reasons.push("Réservée aux logements classés E, F ou G.");
+    const gain=s.nego.dpe&&s.nego.dpeCible?DPE_ORDER.indexOf(s.nego.dpe)-DPE_ORDER.indexOf(s.nego.dpeCible):null;
+    if(s.nego.dpe&&!s.nego.dpeCible) reasons.push("Renseignez la classe visée après travaux.");
+    else if(gain!=null&&gain<2) reasons.push("Il faut un gain d'au moins 2 classes.");
+    if(a.chauf==="gaz"&&b.type==="maison") reasons.push("Depuis le 1er septembre 2026, un chauffage au gaz exclut la rénovation d'ampleur en maison individuelle.");
+    const plaf=gain!=null&&gain>=3?BAREME.ampleur.plafond3:BAREME.ampleur.plafond2;
+    let m=BAREME.ampleur.taux[cat]*Math.min(htElig,plaf);
+    const ecr=Math.max(0,BAREME.ampleur.ecretement[cat]*ttcElig-cee);
+    const ecrete=m>ecr; m=Math.min(m,ecr);
+    out.ampleur={ok:!reasons.length,reasons,gain,plafond:plaf,taux:BAREME.ampleur.taux[cat],montant:reasons.length?0:m,ecrete};
+    out.mar={taux:BAREME.mar.taux[cat],max:BAREME.mar.taux[cat]*BAREME.mar.plafond};
+  }
+  // ----- Éco-PTZ (sans condition de ressources)
+  const acts=["combles","murs","menuis","chauffage"].filter(id=>r.lines.some(l=>l.p.id===id));
+  const anc=r.lines.find(l=>l.p.id==="anc");
+  let max=0, duree=BAREME.ecoptz.dureePonctuel, type="";
+  if(out.ampleur&&out.ampleur.ok){max=BAREME.ecoptz.global;duree=BAREME.ecoptz.dureeGlobal;type="performance globale"}
+  else if(acts.length>=3){max=BAREME.ecoptz.trois;type="3 actions ou plus"}
+  else if(acts.length===2){max=BAREME.ecoptz.deux;type="2 actions"}
+  else if(acts.length===1){max=acts[0]==="menuis"?BAREME.ecoptz.vitrage:BAREME.ecoptz.une;type=acts[0]==="menuis"?"menuiseries seules":"1 action"}
+  else if(anc){max=BAREME.ecoptz.anc;type="assainissement non collectif"}
+  const okPtz=rp&&(age==null||age>2)&&max>0;
+  const base=(type==="assainissement non collectif"?anc.ttc:ttcElig);
+  out.ecoptz={ok:okPtz,max,type,duree,montant:okPtz?Math.min(max,base):0,motif:!rp?"Réservé aux résidences principales.":max?"":"Aucun poste de rénovation énergétique activé."};
+  // ----- Synthèse
+  const g=out.geste?out.geste.total:0, am=out.ampleur&&out.ampleur.ok?out.ampleur.montant:0;
+  out.best=am>g?"ampleur":(g>0?"geste":null);
+  out.mpr=Math.max(g,am); out.cee=cee; out.total=out.mpr+cee;
+  out.reste=Math.max(0,r.ttc-out.total);
+  return out;
+}
+/* =================== FORMATAGE =================== */
+const $=id=>document.getElementById(id);
+const fmt=(n,step=100)=>new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Math.round(n/step)*step);
+const eur=n=>fmt(n,100), eur1=n=>fmt(n,1);
+const pct=n=>(n>0?"+":"")+Math.round(n*100)+" %";
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const today=()=>new Date().toLocaleDateString("fr-FR");
+function toast(id,msg){$(id).textContent=msg;clearTimeout(toast[id]);toast[id]=setTimeout(()=>$(id).textContent="",4000)}
+
+/* =================== RENDU : SIMULATION =================== */
+function renderLieu(){
+  $("dept").innerHTML=DEPTS.map(d=>`<option value="${d.code}">${d.code} · ${esc(d.name)}</option>`).join("");
+  $("zone").innerHTML=cfg.zones.map(z=>`<option value="${esc(z.id)}">${esc(z.label)}</option>`).join("");
+  if(!deptOf(S.bien.dept)) S.bien.dept="11";
+  if(!cfg.zones.some(z=>z.id===S.bien.zone)) S.bien.zone=cfg.zones.find(z=>z.id==="ville")?"ville":(cfg.zones[0]?.id||"");
+  $("dept").value=S.bien.dept; $("zone").value=S.bien.zone; $("cp").value=S.bien.cp||"";
+}
+function renderBien(){
+  const b=S.bien;
+  $("ref").value=S.ref||"";
+  ["surface","niveaux","annee","sdb","prix"].forEach(k=>$(k).value=b[k]??"");
+  $("acces").value=b.acces; $("assain").value=b.assain||"collectif";
+  $("assainWrap").hidden=b.type!=="maison";
+  $("type").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===b.type));
+  $("conseiller").value=S.conseiller||""; $("tel").value=S.tel||"";
+  renderLieu();
+}
+function renderPostes(){
+  const b=S.bien, fams={};
+  POSTES.forEach(p=>(fams[p.fam]=fams[p.fam]||[]).push(p));
+  let h="";
+  for(const f in fams){
+    h+=`<div class="fam"><h3>${f}</h3>`;
+    fams[f].forEach(p=>{
+      const st=S.postes[p.id];
+      if(!applies(p,b)){h+=`<div class="poste off"><span></span><div class="name">${p.label}<small>Parties communes : à voir avec le syndic</small></div></div>`;return}
+      h+=`<div class="poste ${st.on?"":"off"}" data-id="${p.id}">
+        <input type="checkbox" class="tog" id="on-${p.id}" ${st.on?"checked":""} aria-label="Activer ${p.label}">
+        <label class="name" for="on-${p.id}">${p.label}${p.help?`<small>${p.help}</small>`:""}</label>
+        <span class="amt" id="amt-${p.id}"></span>
+        <div class="ctrl">
+          <div class="seg" role="group" aria-label="Niveau">${NIV.map((n,i)=>`<button data-k="niv" data-v="${i}" aria-pressed="${st.niv===i}">${n}</button>`).join("")}</div>
+          <div class="seg" role="group" aria-label="Gamme">${GAM.map((n,i)=>`<button data-k="gam" data-v="${i}" aria-pressed="${st.gam===i}">${n}</button>`).join("")}</div>
+          ${p.unit==="forfait"?"":`<span class="qty"><input id="q-${p.id}" type="number" min="0" step="1" inputmode="decimal" placeholder="${autoQty(p,b)}" value="${st.q??""}" aria-label="Quantité ${p.label}">${p.unit}</span>`}
+          <label class="photo">+ Photo<input type="file" accept="image/*" capture="environment" multiple data-photo="${p.id}" id="ph-${p.id}"></label>
+          <div class="thumbs" id="th-${p.id}"></div>
+        </div></div>`;
+    });
+    h+=`</div>`;
+  }
+  $("postes").innerHTML=h;
+  POSTES.forEach(renderThumbs);
+}
+function renderThumbs(p){
+  const el=$("th-"+(p.id||p)); if(!el) return; const id=p.id||p;
+  el.innerHTML=(photos[id]||[]).map((src,i)=>`<button data-del="${id}" data-i="${i}" aria-label="Retirer la photo"><img src="${src}" alt=""></button>`).join("");
+}
+function renderDiag(){
+  const b=S.bien, y=+b.annee, items=[];
+  if(y && y<1949) items.push("Construction antérieure à 1949 : constat de risque d'exposition au plomb (CREP) à consulter.");
+  if(y && y<1997) items.push("Permis de construire antérieur au 1er juillet 1997 : diagnostic amiante à consulter avant de chiffrer une démolition.");
+  if(y && y<=new Date().getFullYear()-15) items.push("Installations électricité et gaz probablement de plus de 15 ans : diagnostics à consulter.");
+  let h=items.length?`<div class="alert"><strong>Diagnostics à consulter</strong><ul>${items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`:"";
+  if(b.type==="maison" && b.assain==="anc") h+=`<div class="alert"><strong>Assainissement individuel</strong><ul>
+    <li>Le rapport de contrôle du SPANC, daté de moins de 3 ans, doit être joint au dossier de diagnostic technique.</li>
+    <li>En cas de non-conformité, l'acquéreur doit réaliser les travaux dans un délai d'un an après la vente.</li>
+    <li>Activez le poste « Assainissement individuel » si le rapport signale des travaux.</li></ul></div>`;
+  if(b.type==="maison" && b.assain==="nc") h+=`<div class="note">Mode d'assainissement à vérifier auprès du vendeur ou de la mairie avant de chiffrer.</div>`;
+  $("diag").innerHTML=h;
+}
+function renderAides(){
+  const on=POSTES.filter(p=>p.energie && S.postes[p.id].on && applies(p,S.bien));
+  $("aides").innerHTML=on.length?`<div class="info"><strong>Travaux énergétiques détectés</strong> : l'acquéreur peut prétendre à des aides (MaPrimeRénov', primes CEE, éco-PTZ, TVA à 5,5 %). <a href="#aides">Estimer le montant des aides</a></div>`:"";
+}
+
+/* =================== RENDU : RÉSULTAT =================== */
+let R;
+function renderResult(){
+  R=compute(S,cfg);
+  $("r-med").textContent=$("m-med").textContent=eur(R.ttc);
+  $("r-low").textContent=eur(R.low); $("r-high").textContent=eur(R.high);
+  $("r-ht").textContent=eur(R.ht);
+  $("r-m2").textContent=S.bien.surface?eur1(R.ttc/S.bien.surface)+"/m²":"—";
+  const pr=+S.bien.prix, show=pr>0;
+  ["r-prix","r-prix-l","r-net","r-net-l"].forEach(id=>$(id).hidden=!show);
+  if(show){$("r-prix").textContent=eur1(pr);$("r-net").textContent=eur(pr+R.ttc)}
+  const p=cfg.params; $("rmark").style.left=`calc(${((1-p.low)/(p.high-p.low)*100).toFixed(1)}% - 2px)`;
+  const max=Math.max(1,...R.lines.map(l=>l.ttc));
+  $("bars").innerHTML=R.lines.length?[...R.lines].sort((a,b)=>b.ttc-a.ttc).map(l=>
+    `<div class="bar"><span class="t">${l.p.label}</span><span class="v">${eur(l.ttc)}</span><div class="track"><div class="fill" style="width:${(l.ttc/max*100).toFixed(1)}%"></div></div></div>`).join("")
+    :`<p class="note">Activez au moins un poste de travaux pour obtenir une estimation.</p>`;
+  POSTES.forEach(p=>{const el=$("amt-"+p.id); if(el){const l=R.lines.find(x=>x.p.id===p.id); el.textContent=l?eur(l.ttc):""}});
+  renderAidesTab();
+  renderNego();
+  ls.set("st2-sim",S);
+}
+
+/* =================== RENDU : NÉGOCIATION =================== */
+function renderNego(){
+  const n=S.nego, prix=+S.bien.prix, trav=R.ttc;
+  $("marche").value=n.marche; $("taux").value=n.taux; $("duree").value=n.duree; $("dpe").value=n.dpe; $("dpeCible").value=n.dpeCible;
+  // Comparaison
+  if(scenarioA){
+    const d=trav-scenarioA.ttc;
+    $("cmp").innerHTML=`<div class="cmp">
+      <div class="box"><span class="t">Scénario A</span><span class="v">${eur(scenarioA.ttc)}</span><small>${esc(scenarioA.label)}</small><small>Fourchette ${eur(scenarioA.low)} à ${eur(scenarioA.high)}</small></div>
+      <div class="box b"><span class="t">Scénario B (actuel)</span><span class="v">${eur(trav)}</span><small>${R.lines.length} poste${R.lines.length>1?"s":""}</small><small>Fourchette ${eur(R.low)} à ${eur(R.high)}</small></div></div>
+      <dl class="kv"><dt>Écart B − A</dt><dd class="hl">${d>=0?"+":"−"} ${eur(Math.abs(d))}</dd>
+      ${prix>0?`<dt>Budget global A</dt><dd>${eur(prix+scenarioA.ttc)}</dd><dt>Budget global B</dt><dd>${eur(prix+trav)}</dd>`:""}
+      ${+n.duree>0?`<dt>Écart de mensualité</dt><dd>${d>=0?"+":"−"} ${eur1(mensualite(Math.abs(d),+n.taux,+n.duree))}/mois</dd>`:""}</dl>`;
+  } else $("cmp").innerHTML=`<p class="empty">Aucun scénario A mémorisé pour l'instant.</p>`;
+  // Vendeur
+  const marche=+n.marche, coherent=marche>0?marche-trav:null;
+  let kv="";
+  if(prix>0) kv+=`<dt>Prix affiché</dt><dd>${eur1(prix)}</dd>`;
+  kv+=`<dt>Travaux estimés (médian TTC)</dt><dd>${eur(trav)}</dd>`;
+  if(coherent!=null) kv+=`<dt>Bien rénové comparable</dt><dd>${eur1(marche)}</dd><dt>Valeur cohérente en l'état</dt><dd class="hl">${eur(coherent)}</dd>`;
+  if(coherent!=null && prix>0) kv+=`<dt>Écart avec le prix affiché</dt><dd>${prix>coherent?"+":"−"} ${eur(Math.abs(prix-coherent))}</dd>`;
+  $("vendKv").innerHTML=kv;
+  const top=[...R.lines].sort((a,b)=>b.ttc-a.ttc).slice(0,3).map(l=>l.p.label.toLowerCase());
+  let v=`Les acquéreurs qui visiteront votre bien vont chiffrer les travaux, souvent à la hausse. Nous avons préféré le faire avec vous, de façon objective.\n\n`;
+  v+=`Après relevé poste par poste${top.length?` (principalement ${top.join(", ")})`:""}, l'ordre de grandeur se situe entre ${eur(R.low)} et ${eur(R.high)} TTC, avec une valeur médiane de ${eur(trav)}.\n\n`;
+  if(coherent!=null) v+=`Un bien comparable déjà rénové se négocie autour de ${eur1(marche)}. Un acquéreur raisonne donc sur ${eur1(marche)} − ${eur(trav)} de travaux, soit une valeur cohérente d'environ ${eur(coherent)} en l'état.\n\n`;
+  if(coherent!=null && prix>0 && prix>coherent) v+=`Le prix affiché de ${eur1(prix)} dépasse cette valeur de ${eur(prix-coherent)}. C'est l'écart que les acquéreurs chercheront à négocier ; l'intégrer dès maintenant permet d'attirer davantage de visites qualifiées et de vendre dans de meilleurs délais.\n\n`;
+  else if(coherent!=null && prix>0) v+=`Le prix affiché de ${eur1(prix)} est cohérent avec cette analyse : c'est un argument solide à présenter aux acquéreurs.\n\n`;
+  v+=`Estimation indicative et non contractuelle, qui ne remplace pas les devis de professionnels du bâtiment.`;
+  $("vendTxt").value=v;
+  // Acquéreur
+  const m=mensualite(trav,+n.taux,+n.duree), ml=mensualite(R.low,+n.taux,+n.duree), mh=mensualite(R.high,+n.taux,+n.duree);
+  const nrj=R.lines.filter(l=>l.p.energie);
+  $("acqKv").innerHTML=`<dt>Travaux (médian TTC)</dt><dd>${eur(trav)}</dd>
+    <dt>Mensualité supplémentaire</dt><dd class="hl">${eur1(m)}/mois</dd>
+    <dt>Fourchette de mensualité</dt><dd>${eur1(ml)} à ${eur1(mh)}</dd>
+    ${prix>0?`<dt>Budget global (prix + travaux)</dt><dd>${eur(prix+trav)}</dd>`:""}
+    ${nrj.length?`<dt>Dont travaux énergétiques</dt><dd>${eur(nrj.reduce((s,l)=>s+l.ttc,0))}</dd>`:""}`;
+  let a=`Bonjour,\n\nPour vous aider à vous projeter, voici un ordre de grandeur des travaux pour ce bien : entre ${eur(R.low)} et ${eur(R.high)} TTC, soit environ ${eur(trav)}.\n\n`;
+  a+=`Intégrés à votre financement sur ${n.duree} ans à ${String(n.taux).replace(".",",")} %, ces travaux représentent environ ${eur1(m)} de plus par mois (hors assurance).\n\n`;
+  if(nrj.length){a+=`Une partie concerne la performance énergétique (${nrj.map(l=>l.p.label.toLowerCase()).join(", ")})`;
+    a+=n.dpe&&n.dpeCible?`, avec l'objectif de passer d'une classe ${n.dpe} à une classe ${n.dpeCible}, à confirmer par un DPE projeté ou un audit énergétique`:"";
+    a+=`.\n\n`;}
+  if(A&&A.cat!=null&&A.total>0) a+=`D'après votre profil, les aides pourraient atteindre environ ${eur(A.total)} (${A.best==="ampleur"?"MaPrimeRénov' rénovation d'ampleur":"MaPrimeRénov' par geste"}${A.cee?" et prime CEE":""}), ramenant le reste à charge autour de ${eur(A.reste)}.\n\n`;
+  if(A&&A.ecoptz&&A.ecoptz.ok) a+=`Vous pouvez également financer jusqu'à ${eur1(A.ecoptz.max)} de travaux avec un éco-prêt à taux zéro, sans condition de revenus.\n\n`;
+  if(nrj.length) a+=`Ces montants sont à confirmer avec un conseiller France Rénov' (0 808 800 700), avant tout début de travaux.\n\n`;
+  a+=`Ces montants sont indicatifs et non contractuels : je vous recommande de faire établir des devis par des professionnels.\n\nBien à vous,${S.conseiller?`\n${S.conseiller}\nConseiller immobilier iad`:""}`;
+  $("acqTxt").value=a;
+}
+
+
+/* =================== RENDU : AIDES =================== */
+let A=null;
+function renderAidesTab(){
+  const a=S.aides;
+  $("a-pers").value=a.pers??""; $("a-rfr").value=a.rfr??""; $("a-rp").value=a.rp===false?"0":"1";
+  $("a-chauf").value=a.chauf; $("a-cee").value=a.cee??""; $("a-fioul").checked=!!a.fioul; $("a-audit").checked=!!a.audit;
+  $("dpe").value=S.nego.dpe; $("dpeCible").value=S.nego.dpeCible;
+  A=computeAides(S,R);
+  $("a-elig").placeholder=Math.round(A.htEligAuto); $("a-elig").value=a.elig??"";
+  const el=$("aidesOut");
+  if(A.cat==null){el.innerHTML=`<p class="empty">Saisissez le nombre de personnes et le revenu fiscal de référence de l'acquéreur pour estimer MaPrimeRénov'. L'éco-PTZ, lui, ne dépend pas des revenus.</p>`+ptzBlock();return}
+  const c=BAREME.cats[A.cat];
+  let h=`<dl class="kv"><dt>Profil de revenus${A.idf?" (Île-de-France)":""}</dt><dd><span class="chip">${c.couleur} · ${c.label}</span></dd>
+    <dt>Travaux estimés (médian TTC)</dt><dd>${eur(R.ttc)}</dd></dl>`;
+  h+=`<div class="tbl"><table><thead><tr><th>Aide</th><th class="n">Montant estimé</th></tr></thead><tbody>`;
+  // Par geste
+  const g=A.geste;
+  h+=`<tr><td><strong>MaPrimeRénov' par geste</strong>${A.best==="geste"?' <span class="chip ok">retenu</span>':""}<br><small style="color:var(--muted)">${
+    g.det.length?g.det.map(d=>`${d.label} : ${eur1(d.montant)}`).join(" · "):esc(g.motif)}${g.det.length&&g.motif?" · "+esc(g.motif):""}</small></td><td class="n">${eur1(g.total)}</td></tr>`;
+  // Ampleur
+  const am=A.ampleur;
+  h+=`<tr><td><strong>MaPrimeRénov' rénovation d'ampleur</strong>${A.best==="ampleur"?' <span class="chip ok">retenu</span>':""}<br><small style="color:var(--muted)">${
+    am.ok?`${Math.round(am.taux*100)} % de ${eur1(Math.min(A.htElig,am.plafond))} HT (plafond ${eur1(am.plafond)}, gain de ${am.gain} classes)${am.ecrete?" · montant écrêté":""}`:esc(am.reasons.join(" "))}</small></td>
+    <td class="n">${am.ok?eur1(am.montant):'<span class="chip warn">non éligible</span>'}</td></tr>`;
+  h+=`<tr><td><strong>Prime CEE</strong><br><small style="color:var(--muted)">${A.cee?"montant saisi d'après le devis":"à saisir d'après le devis de l'artisan"}</small></td><td class="n">${A.cee?eur1(A.cee):"—"}</td></tr>`;
+  h+=`<tr><td><strong>Total des aides</strong><br><small style="color:var(--muted)">Les deux parcours MaPrimeRénov' ne se cumulent pas : le plus avantageux est retenu.</small></td><td class="n"><strong>${eur1(A.total)}</strong></td></tr>`;
+  h+=`</tbody></table></div>`;
+  h+=`<dl class="kv"><dt>Reste à charge estimé</dt><dd class="hl">${eur(A.reste)}</dd>
+    ${am.ok?`<dt>Accompagnateur Rénov' (obligatoire)</dt><dd>pris en charge à ${Math.round(A.mar.taux*100)} %, jusqu'à ${eur1(A.mar.max)}</dd>`:""}</dl>`;
+  h+=ptzBlock();
+  const w=[];
+  if(am.ok) w.push("Rénovation d'ampleur : rendez-vous préalable obligatoire avec un conseiller France Rénov', accompagnement par un Accompagnateur Rénov', au moins deux gestes d'isolation et chauffage décarboné.");
+  w.push("La demande doit être déposée et acceptée avant le début des travaux, auprès d'artisans certifiés RGE. Le calendrier par rapport à la signature de l'acte se vérifie avec France Rénov'.");
+  w.push("TVA à 5,5 % sur les travaux de rénovation énergétique éligibles (déjà appliquée aux postes d'isolation de la simulation).");
+  h+=`<div class="info"><strong>Conditions à rappeler à l'acquéreur</strong><ul>${w.map(x=>`<li>${x}</li>`).join("")}</ul></div>`;
+  el.innerHTML=h;
+}
+function ptzBlock(){
+  const p=A.ecoptz;
+  if(!p.ok) return `<div class="note"><strong>Éco-PTZ</strong> : ${esc(p.motif||"non applicable pour ce projet.")}</div>`;
+  const reste=A.cat==null?R.ttc:A.reste, pret=Math.min(p.montant,reste), mens=pret/(p.duree*12);
+  const autre=Math.max(0,reste-pret), mensAutre=mensualite(autre,+S.nego.taux,+S.nego.duree);
+  return `<div class="info"><strong>Éco-prêt à taux zéro</strong> (sans condition de revenus) : jusqu'à ${eur1(p.max)} pour ${p.type}, remboursable sur ${p.duree} ans.
+    <ul><li>Financement à 0 % du reste à charge : ${eur(pret)}, soit environ ${eur1(mens)}/mois.</li>
+    ${autre>0?`<li>Solde de ${eur(autre)} au taux de ${String(S.nego.taux).replace(".",",")} % sur ${S.nego.duree} ans : environ ${eur1(mensAutre)}/mois.</li>`:""}</ul></div>`;
+}
+/* =================== RENDU : HISTORIQUE =================== */
+function renderHisto(){
+  const el=$("histo");
+  if(!db||!uid){el.innerHTML=`<p class="empty">Connectez-vous pour retrouver vos simulations enregistrées.</p>`;return}
+  if(!histo.length){el.innerHTML=`<p class="empty">Aucune simulation enregistrée. Utilisez « Enregistrer » dans l'estimation pour retrouver ce bien ici.</p>`;return}
+  el.innerHTML=`<div class="tbl"><table class="wide"><thead><tr><th>Bien</th><th>Date</th><th class="n">Médian TTC</th><th class="n">Réel</th><th></th></tr></thead><tbody>${
+    histo.map(h=>{
+      const ec=h.reel?(h.reel-h.ttc)/h.ttc:null;
+      return `<tr><td><strong>${esc(h.ref||"Sans référence")}</strong><br><small style="color:var(--muted)">${esc(h.bien?.surface)} m² · ${esc(lieuLabel(h.bien))}</small></td>
+      <td>${new Date(h.updatedAt).toLocaleDateString("fr-FR")}</td><td class="n">${eur(h.ttc)}</td>
+      <td class="n">${h.reel?`${eur1(h.reel)} <span class="chip ${Math.abs(ec)>0.2?"warn":"ok"}">${pct(ec)}</span>`:`<input type="number" min="0" step="500" placeholder="montant réel" data-reel="${esc(h.id)}" aria-label="Montant réel des travaux"> <button class="ghost" data-reelsave="${esc(h.id)}">Valider</button>`}</td>
+      <td class="n"><button class="ghost" data-open="${esc(h.id)}">Ouvrir</button> <button class="ghost danger" data-delh="${esc(h.id)}">Supprimer</button></td></tr>`}).join("")
+  }</tbody></table></div>`;
+}
+const regionLabel=id=>(cfg.regions.find(r=>r.id===id)||{}).label||"";
+const zoneLabel=id=>(cfg.zones.find(z=>z.id===id)||{}).label||"";
+const lieuLabel=b=>{const d=deptOf(b?.dept);return d?`${d.name} (${d.code})${b.zone?" · "+zoneLabel(b.zone).toLowerCase():""}`:""};
+
+/* =================== RENDU : GRILLE + CALIBRATION =================== */
+function workCfg(){return draftCfg||cfg}
+function renderGrille(){
+  const c=workCfg(), dis=canEditGrid?"":"disabled";
+  ["aleas","low","high","g0","g2"].forEach(k=>{$("p-"+k).value=c.params[k];$("p-"+k).disabled=!canEditGrid});
+  $("grilleBody").innerHTML=POSTES.map(p=>{const g=c.grid[p.id];return `<tr><td>${p.label}</td><td>${p.unit==="forfait"?"forfait":"€/"+p.unit}</td>${
+    [0,1,2].map(i=>`<td class="n"><input id="g-${p.id}-${i}" data-g="${p.id}" data-i="${i}" type="number" min="0" step="1" value="${g.p[i]}" ${dis}></td>`).join("")
+  }<td class="n"><input id="g-${p.id}-tva" data-g="${p.id}" data-i="tva" type="number" min="0" max="20" step="0.5" value="${g.tva}" ${dis}></td></tr>`}).join("");
+  const coefRows=(list,kind,key)=>list.map((x,i)=>{
+    const rs=retours.filter(r=>r[key]===x.id&&r.estim>0&&r.reel>0).map(r=>r.reel/r.estim), md=median(rs);
+    const sug=rs.length>=3?Math.round(x.coef*md*100)/100:null;
+    return `<tr><td>${esc(x.label)}</td>
+      <td class="n"><input id="${kind}-${i}-coef" data-${kind}="${i}" type="number" min="0.5" max="2" step="0.01" value="${x.coef}" ${dis} aria-label="Coefficient ${esc(x.label)}"></td>
+      <td class="n">${rs.length}</td><td class="n">${md!=null?pct(md-1):"—"}</td>
+      <td class="n">${sug!=null?`<strong>${String(sug).replace(".",",")}</strong>`:"—"}</td>
+      <td class="n">${canEditGrid&&sug!=null?`<button class="ghost" data-apply="${kind}" data-i="${i}" data-v="${sug}">Appliquer</button>`:""}</td></tr>`}).join("");
+  $("regionsBody").innerHTML=coefRows(c.regions,"reg","region");
+  $("zonesBody").innerHTML=coefRows(c.zones,"zon","zone");
+  $("publishGrid").hidden=$("resetGrid").hidden=!canEditGrid;
+  $("publishGrid").disabled=!draftCfg;
+  $("grilleNote").textContent=canEditGrid
+    ? "Vous êtes responsable de cette grille. Modifiez les valeurs puis publiez-les : tous les conseillers les reçoivent immédiatement."
+    : "Prix unitaires HT en gamme standard. Cette grille est commune à toute l'équipe ; elle est mise à jour par votre manager.";
+  // Retours
+  const el=$("retours");
+  if(!db){el.innerHTML=`<p class="empty">Les retours terrain nécessitent une connexion.</p>`;return}
+  if(!canEditGrid){el.innerHTML=`<p class="empty">Les retours terrain de l'équipe sont consultés par l'administrateur pour calibrer la grille. Saisissez les vôtres depuis votre historique.</p>`;return}
+  if(!retours.length){el.innerHTML=`<p class="empty">Aucun retour pour l'instant. Les conseillers les saisissent depuis leur historique, une fois le montant réel des travaux connu.</p>`;return}
+  const all=retours.filter(r=>r.estim>0&&r.reel>0).map(r=>r.reel/r.estim);
+  el.innerHTML=`<dl class="kv"><dt>Retours saisis</dt><dd>${retours.length}</dd><dt>Écart médian réel / estimé</dt><dd class="hl">${all.length?pct(median(all)-1):"—"}</dd></dl>
+    <div class="tbl"><table class="wide"><thead><tr><th>Bien</th><th>Localisation</th><th>Date</th><th class="n">Estimé</th><th class="n">Réel</th><th class="n">Écart</th></tr></thead><tbody>${
+    [...retours].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,50).map(r=>{const e=(r.reel-r.estim)/r.estim;return `<tr><td>${esc(r.ref||"—")}</td><td>${esc(lieuLabel(r))}</td><td>${r.date?new Date(r.date).toLocaleDateString("fr-FR"):""}</td><td class="n">${eur(r.estim)}</td><td class="n">${eur1(r.reel)}</td><td class="n"><span class="chip ${Math.abs(e)>0.2?"warn":"ok"}">${pct(e)}</span></td></tr>`}).join("")
+  }</tbody></table></div>`;
+}
+
+function renderAll(){renderBien();renderPostes();renderDiag();renderAides();renderResult();renderHisto();renderGrille()}
+
+/* =================== ONGLETS =================== */
+const TABS=["simulation","aides","negociation","historique","grille"];
+function route(){
+  const t=TABS.includes(location.hash.slice(1))?location.hash.slice(1):"simulation";
+  document.querySelectorAll("[data-view]").forEach(v=>v.hidden=v.dataset.view!==t);
+  document.querySelectorAll("nav.tabs a").forEach(a=>a.toggleAttribute("aria-current",a.dataset.tab===t)||a.dataset.tab===t&&a.setAttribute("aria-current","page"));
+  document.querySelectorAll("nav.tabs a").forEach(a=>a.dataset.tab===t?a.setAttribute("aria-current","page"):a.removeAttribute("aria-current"));
+  const wide=t==="historique"||t==="grille";
+  $("result").hidden=wide; $("mainGrid").classList.toggle("full",wide); $("mbar").classList.toggle("show",!wide);
+}
+addEventListener("hashchange",route);
+
+/* =================== INTERACTIONS : SIMULATION =================== */
+$("ref").addEventListener("input",e=>{S.ref=e.target.value;ls.set("st2-sim",S)});
+["surface","niveaux","annee","sdb","prix"].forEach(k=>$(k).addEventListener("input",e=>{
+  S.bien[k]=e.target.value===""?(k==="prix"||k==="annee"?"":0):+e.target.value;
+  if(k==="annee") renderDiag();
+  if(["surface","niveaux","sdb"].includes(k)) POSTES.forEach(p=>{const i=$("q-"+p.id); if(i) i.placeholder=autoQty(p,S.bien)});
+  renderResult();
+}));
+["dept","zone","acces"].forEach(k=>$(k).addEventListener("change",e=>{S.bien[k]=e.target.value;renderResult()}));
+$("cp").addEventListener("input",e=>{S.bien.cp=e.target.value.replace(/\D/g,"").slice(0,5);const d=deptFromCp(S.bien.cp);if(d){S.bien.dept=d;$("dept").value=d}renderResult()});
+$("assain").addEventListener("change",e=>{S.bien.assain=e.target.value;renderDiag();ls.set("st2-sim",S)});
+$("type").addEventListener("click",e=>{const v=e.target.dataset.v;if(!v)return;S.bien.type=v;renderBien();renderPostes();renderDiag();renderAides();renderResult()});
+$("postes").addEventListener("change",e=>{
+  if(e.target.classList.contains("tog")){
+    const id=e.target.closest(".poste").dataset.id; S.postes[id].on=e.target.checked;
+    e.target.closest(".poste").classList.toggle("off",!e.target.checked); renderAides(); renderResult();
+  } else if(e.target.dataset.photo){addPhotos(e.target.dataset.photo,e.target.files);e.target.value=""}
+});
+$("postes").addEventListener("click",e=>{
+  const del=e.target.closest("[data-del]");
+  if(del){photos[del.dataset.del].splice(+del.dataset.i,1);renderThumbs(del.dataset.del);return}
+  const btn=e.target.closest("button[data-k]"); if(!btn)return;
+  const id=btn.closest(".poste").dataset.id; S.postes[id][btn.dataset.k]=+btn.dataset.v;
+  btn.parentElement.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===btn)); renderResult();
+});
+$("postes").addEventListener("input",e=>{if(e.target.id.startsWith("q-")){S.postes[e.target.id.slice(2)].q=e.target.value===""?null:+e.target.value;renderResult()}});
+function addPhotos(id,files){
+  [...files].slice(0,4).forEach(f=>{
+    const img=new Image(), url=URL.createObjectURL(f);
+    img.onload=()=>{const k=Math.min(1,1000/Math.max(img.width,img.height)),c=document.createElement("canvas");
+      c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      (photos[id]=photos[id]||[]).push(c.toDataURL("image/jpeg",0.78));URL.revokeObjectURL(url);renderThumbs(id)};
+    img.onerror=()=>{URL.revokeObjectURL(url);toast("toast","Cette image n'a pas pu être lue.")};
+    img.src=url;
+  });
+}
+document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{S=fromPreset(b.dataset.preset);photos={};renderAll();location.hash="#simulation"}));
+$("reset").addEventListener("click",()=>{S=baseSim();photos={};renderAll();location.hash="#simulation";scrollTo({top:0,behavior:"smooth"})});
+$("conseiller").addEventListener("input",e=>{S.conseiller=e.target.value;renderNego();ls.set("st2-sim",S)});
+$("tel").addEventListener("input",e=>{S.tel=e.target.value;ls.set("st2-sim",S)});
+$("m-go").addEventListener("click",()=>$("result").scrollIntoView({behavior:"smooth"}));
+
+
+/* =================== INTERACTIONS : AIDES =================== */
+["a-pers","a-rfr","a-cee","a-elig"].forEach(id=>$(id).addEventListener("input",e=>{const k={"a-pers":"pers","a-rfr":"rfr","a-cee":"cee","a-elig":"elig"}[id];S.aides[k]=e.target.value===""?"":+e.target.value;renderResult()}));
+$("a-rp").addEventListener("change",e=>{S.aides.rp=e.target.value==="1";renderResult()});
+$("a-chauf").addEventListener("change",e=>{S.aides.chauf=e.target.value;renderResult()});
+["fioul","audit"].forEach(k=>$("a-"+k).addEventListener("change",e=>{S.aides[k]=e.target.checked;renderResult()}));
+/* =================== INTERACTIONS : NÉGOCIATION =================== */
+["marche","taux","duree"].forEach(k=>$(k).addEventListener("input",e=>{S.nego[k]=e.target.value===""?"":+e.target.value;renderNego();ls.set("st2-sim",S)}));
+["dpe","dpeCible"].forEach(k=>$(k).addEventListener("change",e=>{S.nego[k]=e.target.value;renderResult()}));
+$("saveA").addEventListener("click",()=>{
+  scenarioA={ttc:R.ttc,low:R.low,high:R.high,label:R.lines.map(l=>`${l.p.label} (${NIV[l.st.niv].toLowerCase()})`).join(", ")||"Aucun poste"};
+  renderNego();
+});
+document.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",()=>copyText($(b.dataset.copy).value,()=>$(b.dataset.copy).select())));
+function copyText(t,fallback){
+  const ok=()=>toast("toast","Texte copié."), ko=()=>{if(fallback)fallback();else{const fb=$("fallback");fb.value=t;fb.hidden=false;fb.select()}toast("toast","Sélectionnez le texte pour le copier.")};
+  try{navigator.clipboard.writeText(t).then(ok,ko)}catch(e){ko()}
+}
+
+/* =================== SYNTHÈSE TEXTE =================== */
+function synthese(){
+  const b=S.bien;
+  let t=`ESTIMATION INDICATIVE DE TRAVAUX — ${today()}\n${S.ref?S.ref+"\n":""}`;
+  t+=`${b.type==="maison"?"Maison":"Appartement"} de ${b.surface} m²${b.annee?`, construit en ${b.annee}`:""}\n\n`;
+  t+=`Fourchette TTC : ${eur(R.low)} à ${eur(R.high)} (médiane ${eur(R.ttc)})\n`;
+  if(+b.prix>0) t+=`Prix affiché ${eur1(+b.prix)} — budget global médian : ${eur(+b.prix+R.ttc)}\n`;
+  t+=`\nDétail par poste (TTC, médiane) :\n`;
+  R.lines.forEach(l=>t+=`• ${l.p.label} — ${NIV[l.st.niv].toLowerCase()}, gamme ${GAM[l.st.gam].toLowerCase()} : ${eur(l.ttc)}\n`);
+  t+=`\nAléas de ${cfg.params.aleas} % inclus.\nEstimation indicative et non contractuelle. Elle ne remplace pas un devis établi par un professionnel du bâtiment ni un diagnostic technique.\n`;
+  if(S.conseiller) t+=`\n${S.conseiller.toUpperCase()}\nConseiller immobilier iad${S.tel?"\n"+S.tel:""}\n`;
+  return t;
+}
+$("copy").addEventListener("click",()=>copyText(synthese()));
+
+/* =================== PDF =================== */
+let logoPng=null;
+function prepLogo(){
+  const svg=document.querySelector(".brand svg"); if(!svg) return;
+  const src=svg.outerHTML.replace(/fill="[^"]*"/,'fill="#00b4ec"');
+  const img=new Image(); img.onload=()=>{const c=document.createElement("canvas");c.width=880;c.height=160;c.getContext("2d").drawImage(img,0,0,880,160);try{logoPng=c.toDataURL("image/png")}catch(e){}};
+  img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(src);
+}
+const pdfTxt=s=>String(s).replace(/[  ]/g," ").replace(/→/g,">").replace(/≥/g,">=");
+function buildPdf(){
+  const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"mm",format:"a4"});
+  const W=210, M=16, blue=[0,180,236], ink=[17,20,24], grey=[85,96,110], head=[60,74,95];
+  let y=M;
+  const T=(s,x,yy,o)=>doc.text(pdfTxt(s),x,yy,o);
+  const need=h=>{if(y+h>297-M-14){footer();doc.addPage();y=M}};
+  const footer=()=>{doc.setFontSize(7.5);doc.setTextColor(...grey);doc.setFont("helvetica","normal");
+    doc.text(doc.splitTextToSize("Estimation indicative et non contractuelle. Elle ne remplace pas un devis établi par un professionnel du bâtiment ni un diagnostic technique.",W-2*M),M,297-M+2)};
+  if(logoPng) doc.addImage(logoPng,"PNG",M,y,44,8);
+  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(...grey);T(today(),W-M,y+5,{align:"right"});
+  y+=16; doc.setFillColor(...blue); doc.rect(M,y,24,1.4,"F"); y+=8;
+  doc.setFont("helvetica","bold");doc.setFontSize(18);doc.setTextColor(...head);T("Estimation indicative des travaux",M,y);y+=7;
+  doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(...ink);
+  const b=S.bien; if(S.ref){T(S.ref,M,y);y+=5}
+  T(`${b.type==="maison"?"Maison":"Appartement"} de ${b.surface} m²${b.annee?`, construit en ${b.annee}`:""} · ${lieuLabel(b)}`,M,y);y+=10;
+  // Encadré fourchette
+  doc.setFillColor(233,252,255);doc.roundedRect(M,y,W-2*M,26,3,3,"F");
+  doc.setFontSize(8.5);doc.setTextColor(...grey);T("MONTANT MÉDIAN TTC",M+6,y+7);T("FOURCHETTE",W/2+4,y+7);
+  doc.setFont("helvetica","bold");doc.setFontSize(20);doc.setTextColor(...head);T(eur(R.ttc),M+6,y+17);
+  doc.setFontSize(12);T(`${eur(R.low)} à ${eur(R.high)}`,W/2+4,y+17);
+  doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(...grey);
+  T(`${eur(R.ht)} HT, aléas de ${cfg.params.aleas} % inclus${b.surface?` · ${eur1(R.ttc/b.surface)}/m²`:""}`,M+6,y+23);
+  y+=34;
+  if(+b.prix>0){doc.setFontSize(10);doc.setTextColor(...ink);T(`Prix affiché : ${eur1(+b.prix)}`,M,y);doc.setFont("helvetica","bold");T(`Budget global (prix + travaux) : ${eur(+b.prix+R.ttc)}`,W-M,y,{align:"right"});doc.setFont("helvetica","normal");y+=10}
+  // Tableau
+  doc.setFontSize(8);doc.setTextColor(...grey);doc.setFont("helvetica","bold");
+  T("POSTE",M,y);T("NIVEAU",M+70,y);T("GAMME",M+105,y);T("QUANTITÉ",M+135,y);T("TTC",W-M,y,{align:"right"});y+=2;
+  doc.setDrawColor(221,229,234);doc.line(M,y,W-M,y);y+=5;
+  doc.setFont("helvetica","normal");doc.setFontSize(9.5);doc.setTextColor(...ink);
+  [...R.lines].sort((a,c)=>c.ttc-a.ttc).forEach(l=>{need(8);
+    T(l.p.label,M,y);T(NIV[l.st.niv],M+70,y);T(GAM[l.st.gam],M+105,y);
+    T(l.p.unit==="forfait"?"forfait":`${String(l.q).replace(".",",")} ${l.p.unit}`,M+135,y);
+    doc.setFont("helvetica","bold");T(eur(l.ttc),W-M,y,{align:"right"});doc.setFont("helvetica","normal");
+    y+=2.5;doc.line(M,y,W-M,y);y+=5;});
+  y+=4;
+  // Aides
+  if(A&&(A.cat!=null||A.ecoptz.ok)){need(30);doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.setTextColor(...head);T("Aides estimées pour l'acquéreur",M,y);y+=6;
+    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(...ink);
+    const rows=[];
+    if(A.cat!=null){rows.push([`Profil de revenus : ${BAREME.cats[A.cat].couleur} (${BAREME.cats[A.cat].label.toLowerCase()})`,""]);
+      if(A.mpr>0) rows.push([A.best==="ampleur"?"MaPrimeRénov' rénovation d'ampleur":"MaPrimeRénov' par geste",eur1(A.mpr)]);
+      if(A.cee) rows.push(["Prime CEE (devis)",eur1(A.cee)]);
+      rows.push(["Total des aides estimées",eur1(A.total)]); rows.push(["Reste à charge estimé",eur(A.reste)]);}
+    if(A.ecoptz.ok) rows.push([`Éco-prêt à taux zéro possible (${A.ecoptz.duree} ans)`,"jusqu'à "+eur1(A.ecoptz.max)]);
+    rows.forEach(r=>{need(6);T(r[0],M,y);if(r[1]){doc.setFont("helvetica","bold");T(r[1],W-M,y,{align:"right"});doc.setFont("helvetica","normal")}y+=5.2});
+    doc.setFontSize(7.5);doc.setTextColor(...grey);
+    const src=doc.splitTextToSize(pdfTxt(`Barème service-public.gouv.fr vérifié le ${BAREME.date}. Montants à confirmer par l'Anah et France Rénov' (0 808 800 700) avant tout début de travaux.`),W-2*M);
+    need(src.length*3.6+4);doc.text(src,M,y+1);y+=src.length*3.6+6}
+  // Points d'attention
+  const pts=[]; const yr=+b.annee;
+  if(yr&&yr<1949) pts.push("Construction antérieure à 1949 : constat de risque d'exposition au plomb (CREP) à consulter.");
+  if(yr&&yr<1997) pts.push("Permis de construire antérieur au 1er juillet 1997 : diagnostic amiante à consulter.");
+  if(b.type==="maison"&&b.assain==="anc") pts.push("Assainissement individuel : rapport du SPANC de moins de 3 ans à joindre ; en cas de non-conformité, travaux à réaliser par l'acquéreur dans l'année suivant la vente.");
+  if(pts.length){need(12);doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.setTextColor(...head);T("Points d'attention",M,y);y+=6;
+    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(...ink);
+    pts.forEach(p=>{const ls2=doc.splitTextToSize(pdfTxt("• "+p),W-2*M);need(ls2.length*4.4+2);doc.text(ls2,M,y);y+=ls2.length*4.4+1.5});y+=4}
+  // Signature
+  if(S.conseiller){need(20);doc.setFillColor(...blue);doc.rect(M,y,1.2,14,"F");
+    doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.setTextColor(...ink);T(S.conseiller.toUpperCase(),M+5,y+4.5);
+    doc.setFont("helvetica","normal");doc.setFontSize(9);T("Conseiller immobilier iad",M+5,y+9.5);if(S.tel)T(S.tel.replace(/\./g," "),M+5,y+14);y+=22}
+  // Photos
+  const ph=R.lines.flatMap(l=>(photos[l.p.id]||[]).map(src=>({src,label:l.p.label})));
+  if(ph.length){footer();doc.addPage();y=M;doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...head);T("Photos de la visite",M,y+4);y+=12;
+    const cw=(W-2*M-6)/2, ch=cw*0.72;
+    ph.forEach((p,i)=>{const col=i%2; if(col===0) need(ch+10);
+      const x=M+col*(cw+6), props=doc.getImageProperties(p.src), k=Math.min(cw/props.width,ch/props.height);
+      doc.addImage(p.src,"JPEG",x,y,props.width*k,props.height*k);
+      doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(...grey);T(p.label,x,y+ch+4.5);
+      if(col===1||i===ph.length-1) y+=ch+10;});
+  }
+  footer();
+  return doc.output("blob");
+}
+$("pdf").addEventListener("click",async()=>{
+  if(!window.jspdf){toast("toast","Le module PDF n'a pas pu se charger. Utilisez « Copier le texte ».");return}
+  if(!R.lines.length){toast("toast","Activez au moins un poste avant de générer le PDF.");return}
+  const name=("Estimation travaux "+(S.ref||today())).replace(/[\\/:*?"<>|]/g,"-").slice(0,80)+".pdf";
+  try{
+    const blob=buildPdf(), file=new File([blob],name,{type:"application/pdf"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})&&/iPhone|iPad|Android/i.test(navigator.userAgent)){
+      await navigator.share({files:[file],title:name});toast("toast","PDF prêt à être partagé.");
+    } else {
+      const url=URL.createObjectURL(blob), a=document.createElement("a");
+      a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
+      toast("toast","PDF téléchargé.");
+    }
+  }catch(e){if(!(e&&e.name==="AbortError"))toast("toast","Le PDF n'a pas pu être généré.")}
+});
+
+/* =================== HISTORIQUE (db) =================== */
+$("save").addEventListener("click",async()=>{
+  if(!db||!uid){toast("toast","Connectez-vous pour enregistrer vos simulations.");return}
+  if(!S.ref){toast("toast","Indiquez une référence du bien (étape 1) avant d'enregistrer.");$("ref").focus();return}
+  if(!S.id) S.id="s"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  const prev=histo.find(h=>h.id===S.id)||{};
+  const docBody={id:S.id,ref:S.ref,bien:S.bien,postes:S.postes,nego:S.nego,aides:Object.assign({},S.aides,{rfr:"",profil:A&&A.cat!=null?BAREME.cats[A.cat].couleur:""}),conseiller:S.conseiller,tel:S.tel,ttc:Math.round(R.ttc),low:Math.round(R.low),high:Math.round(R.high),updatedAt:new Date().toISOString(),reel:prev.reel||null};
+  try{await db.collection("users/"+uid+"/sims").doc(S.id).set(docBody);ls.set("st2-sim",S);toast("toast","Simulation enregistrée dans votre historique.")}
+  catch(e){toast("toast",e&&e.code==="quota_exceeded"?"Historique plein : supprimez d'anciennes simulations.":"Enregistrement impossible pour l'instant.")}
+});
+$("histo").addEventListener("click",async e=>{
+  const o=e.target.closest("[data-open]"), d=e.target.closest("[data-delh]"), r=e.target.closest("[data-reelsave]");
+  if(o){const h=histo.find(x=>x.id===o.dataset.open); if(!h)return;
+    S=Object.assign(baseSim(),clone({id:h.id,ref:h.ref,bien:h.bien,postes:Object.assign(blankPostes(),h.postes),nego:Object.assign(baseSim().nego,h.nego||{}),aides:Object.assign(defaultAides(),h.aides||{}),conseiller:h.conseiller||S.conseiller,tel:h.tel||S.tel}));
+    photos={};renderAll();location.hash="#simulation";scrollTo({top:0})}
+  if(d){if(d.dataset.confirm!=="1"){d.dataset.confirm="1";d.textContent="Confirmer ?";setTimeout(()=>{d.dataset.confirm="";d.textContent="Supprimer"},3000);return}
+    try{await db.collection("users/"+uid+"/sims").doc(d.dataset.delh).delete()}catch(err){toast("toast","Suppression impossible.")}}
+  if(r){const id=r.dataset.reelsave, inp=document.querySelector(`[data-reel="${id}"]`), v=+inp.value;
+    if(!(v>0)){inp.focus();return}
+    const h=histo.find(x=>x.id===id);
+    try{
+      await db.collection("users/"+uid+"/sims").doc(id).update({reel:v});
+      await db.collection("retours").doc(uid.replace(/[^A-Za-z0-9_\-.~:@+]/g,"_")+"-"+id).set({ref:h.ref,dept:h.bien?.dept||"",region:regionOf(h.bien||{}),zone:h.bien?.zone||"",type:h.bien?.type||"",surface:h.bien?.surface||0,estim:h.ttc,reel:v,uid:uid,date:new Date().toISOString()});
+      toast("toast","Merci : votre retour terrain améliore la grille de l'équipe.");
+    }catch(err){toast("toast","Le retour n'a pas pu être enregistré.")}
+  }
+});
+
+/* =================== GRILLE (édition responsable) =================== */
+function editCfg(){if(!draftCfg) draftCfg=clone(cfg); $("publishGrid").disabled=false; return draftCfg}
+$("grilleBody").addEventListener("input",e=>{const t=e.target;if(!t.dataset.g)return;const c=editCfg(),v=+t.value||0;
+  if(t.dataset.i==="tva") c.grid[t.dataset.g].tva=v; else c.grid[t.dataset.g].p[+t.dataset.i]=v});
+["aleas","low","high","g0","g2"].forEach(k=>$("p-"+k).addEventListener("input",e=>{editCfg().params[k]=+e.target.value||DEFAULT_PARAMS[k]}));
+["regionsBody","zonesBody"].forEach(id=>{
+  $(id).addEventListener("input",e=>{const t=e.target, c=editCfg();
+    if(t.dataset.reg!=null) c.regions[+t.dataset.reg].coef=+t.value||1;
+    if(t.dataset.zon!=null) c.zones[+t.dataset.zon].coef=+t.value||1;});
+  $(id).addEventListener("click",e=>{const a=e.target.closest("[data-apply]");if(!a)return;const c=editCfg();
+    (a.dataset.apply==="reg"?c.regions:c.zones)[+a.dataset.i].coef=+a.dataset.v;renderGrille();toast("gridToast","Coefficient appliqué : publiez la grille pour le diffuser.")});
+});
+$("resetGrid").addEventListener("click",()=>{draftCfg=defaultCfg();renderGrille();toast("gridToast","Valeurs par défaut chargées : publiez pour les appliquer à l'équipe.")});
+$("publishGrid").addEventListener("click",async()=>{
+  if(!draftCfg||!db) return;
+  $("publishGrid").disabled=true;
+  try{await db.doc("config/grille").set({grid:draftCfg.grid,params:draftCfg.params,regions:draftCfg.regions,zones:draftCfg.zones,updatedAt:new Date().toISOString()});
+    draftCfg=null;toast("gridToast","Grille publiée : toute l'équipe utilise désormais ces valeurs.")}
+  catch(e){$("publishGrid").disabled=false;toast("gridToast","Publication refusée : seul un administrateur peut modifier la grille.")}
+});
+
+/* =================== CONNEXION AU STOCKAGE PARTAGÉ =================== */
+function setSync(on,txt){$("sync").classList.toggle("on",on);$("syncTxt").textContent=txt}
+let unsubs=[];
+function allowedEmail(email){
+  const d=(window.APP_CONFIG&&APP_CONFIG.allowedDomains)||[];
+  return !d.length||d.some(x=>String(email||"").toLowerCase().endsWith("@"+x.toLowerCase()));
+}
+function isAdmin(email){return ((window.APP_CONFIG&&APP_CONFIG.adminEmails)||[]).map(x=>x.toLowerCase()).includes(String(email||"").toLowerCase())}
+function connect(){
+  if(!window.firebase||!window.FIREBASE_CONFIG||String(FIREBASE_CONFIG.apiKey).startsWith("A_REMPLACER")){
+    setSync(false,"Mode démonstration : grille par défaut, sans enregistrement");renderHisto();renderGrille();return}
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const auth=firebase.auth(); db=firebase.firestore();
+  try{db.enablePersistence({synchronizeTabs:true}).catch(()=>{})}catch(e){}
+  // Retour d'un lien de connexion reçu par e-mail
+  if(auth.isSignInWithEmailLink(location.href)){
+    let email=ls.get("st2-email")||$("authEmail").value;
+    if(email) auth.signInWithEmailLink(email,location.href).then(()=>history.replaceState(null,"",location.pathname+location.hash)).catch(()=>{$("authScreen").hidden=false;$("authMsg").textContent="Ce lien a expiré : demandez-en un nouveau."});
+    else {$("authScreen").hidden=false;$("authMsg").textContent="Saisissez votre adresse e-mail puis redemandez un lien depuis cet appareil."}
+  }
+  $("googleBtn").addEventListener("click",()=>{const p=new firebase.auth.GoogleAuthProvider();p.setCustomParameters({prompt:"select_account"});
+    auth.signInWithPopup(p).catch(e=>{if(e&&e.code==="auth/popup-blocked")auth.signInWithRedirect(p);else $("authMsg").textContent="Connexion Google interrompue."})});
+  $("linkBtn").addEventListener("click",()=>{const email=$("authEmail").value.trim();
+    if(!/^\S+@\S+\.\S+$/.test(email)){$("authMsg").textContent="Saisissez une adresse e-mail valide.";return}
+    if(!allowedEmail(email)){$("authMsg").textContent="Cette application est réservée aux adresses "+APP_CONFIG.allowedDomains.map(d=>"@"+d).join(", ")+".";return}
+    auth.sendSignInLinkToEmail(email,{url:location.origin+location.pathname,handleCodeInApp:true}).then(()=>{ls.set("st2-email",email);$("authMsg").textContent="Lien envoyé : ouvrez l'e-mail sur cet appareil pour vous connecter."})
+      .catch(()=>{$("authMsg").textContent="L'envoi du lien a échoué. Réessayez dans quelques minutes."})});
+  $("logout").addEventListener("click",()=>auth.signOut());
+  auth.onAuthStateChanged(u=>{
+    unsubs.forEach(f=>f());unsubs=[];histo=[];retours=[];
+    if(!u){uid=null;canEditGrid=false;$("authScreen").hidden=false;$("who").hidden=true;renderHisto();renderGrille();return}
+    if(!allowedEmail(u.email)){$("authMsg").textContent="Cette application est réservée aux adresses "+APP_CONFIG.allowedDomains.map(d=>"@"+d).join(", ")+".";auth.signOut();return}
+    uid=u.uid; canEditGrid=isAdmin(u.email);
+    $("authScreen").hidden=true; $("who").hidden=false; $("whoTxt").textContent=u.email+(canEditGrid?" · administrateur":"");
+    if(!S.conseiller&&u.displayName){S.conseiller=u.displayName;$("conseiller").value=S.conseiller}
+    const t=setTimeout(()=>setSync(false,"Grille commune injoignable (mode hors connexion)"),10000);
+    unsubs.push(db.doc("config/grille").onSnapshot({includeMetadataChanges:false},s=>{
+      if(!s.metadata.fromCache) clearTimeout(t);
+      if(s.exists){const v=s.data();cfg={grid:Object.assign(clone(DEFAULT_GRID),clone(v.grid||{})),params:Object.assign(clone(DEFAULT_PARAMS),v.params||{}),regions:v.regions&&v.regions.length?clone(v.regions):clone(DEFAULT_REGIONS),zones:v.zones&&v.zones.length?clone(v.zones):clone(DEFAULT_ZONES)};
+        setSync(true,"Grille d'équipe"+(v.updatedAt?" du "+new Date(v.updatedAt).toLocaleDateString("fr-FR"):""))}
+      else{setSync(false,canEditGrid?"Grille par défaut : publiez-la depuis l'onglet Grille":"Grille par défaut");if(canEditGrid&&!draftCfg)draftCfg=defaultCfg()}
+      renderLieu();renderResult();renderGrille();
+    },()=>{clearTimeout(t);setSync(false,"Grille par défaut")}));
+    if(canEditGrid) unsubs.push(db.collection("retours").onSnapshot(s=>{retours=s.docs.map(x=>x.data());renderGrille()},()=>{}));
+    unsubs.push(db.collection("users/"+uid+"/sims").orderBy("updatedAt","desc").limit(200).onSnapshot(s=>{histo=s.docs.map(x=>x.data());renderHisto()},()=>{histo=[];renderHisto()}));
+    renderGrille();
+  });
+}
+if("serviceWorker" in navigator) addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+
+/* =================== DÉMARRAGE =================== */
+renderAll(); route(); prepLogo(); connect();
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 /* Fonctionnement hors connexion. Incrémentez VERSION à chaque déploiement. */
-const VERSION = "travaux-v1";
+const VERSION = "travaux-v2";
 const SHELL = ["./", "./index.html", "./config.js", "./manifest.webmanifest", "./mentions-legales.html",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 const CDN = ["cdnjs.cloudflare.com", "www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com"];

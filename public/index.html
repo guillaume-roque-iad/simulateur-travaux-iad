@@ -294,6 +294,25 @@ td input.w{width:100%;min-width:160px}
           <p class="legal">Barème MaPrimeRénov' et éco-PTZ publié sur service-public.gouv.fr (page vérifiée le 1er septembre 2026). Estimation indicative : seuls l'Anah et un conseiller France Rénov' (0 808 800 700) confirment l'éligibilité et le montant. Le dispositif peut être suspendu ou modifié en cours d'année, comme en janvier 2026.
           Sources : <a href="https://www.service-public.gouv.fr/particuliers/vosdroits/F35083" target="_blank" rel="noopener">MaPrimeRénov'</a> · <a href="https://www.service-public.gouv.fr/particuliers/vosdroits/F19905" target="_blank" rel="noopener">éco-PTZ</a> · <a href="https://france-renov.gouv.fr" target="_blank" rel="noopener">France Rénov'</a></p>
         </section>
+
+        <section class="card" aria-live="polite">
+          <p class="eyebrow">Financement de l'achat</p>
+          <h2>Prêt à taux zéro (PTZ)</h2>
+          <div class="fields">
+            <label class="f">Zone de la commune
+              <select id="ptz-zone"><option value="">À vérifier</option><option value="A">A bis ou A</option><option value="B1">B1</option><option value="B2">B2</option><option value="C">C</option></select></label>
+            <label class="f">Type d'opération
+              <select id="ptz-type"><option value="ancien">Ancien avec travaux</option><option value="neufc">Neuf en immeuble collectif</option><option value="neufi">Maison individuelle neuve</option></select></label>
+            <label class="f">Primo-accédant
+              <select id="ptz-primo"><option value="1">Oui, non propriétaire de sa résidence principale depuis 2 ans</option><option value="0">Non</option></select></label>
+            <label class="f">Revenu fiscal N-2 (€)<input id="ptz-rfr" type="number" min="0" step="100" inputmode="numeric" placeholder="si différent du revenu saisi plus haut"></label>
+            <label class="f">Coût total de l'opération (€)<input id="ptz-cout" type="number" min="0" step="1000" inputmode="numeric"></label>
+          </div>
+          <p class="note">La zone (A bis, A, B1, B2 ou C) dépend de la commune : <a href="https://www.service-public.gouv.fr/particuliers/vosdroits/R46110" target="_blank" rel="noopener">trouver la zone d'une commune</a>. Le coût total reprend par défaut le prix affiché et les travaux médians ; ajustez-le selon le plan de financement de la banque.</p>
+          <div id="ptzOut"></div>
+          <p class="legal">Barème du PTZ pour les offres émises depuis avril 2025, publié sur service-public.gouv.fr (page vérifiée le 15 septembre 2026). Durées de remboursement indicatives. Seule la banque, avec le <a href="https://www.service-public.gouv.fr/particuliers/vosdroits/R2974" target="_blank" rel="noopener">simulateur officiel</a>, confirme l'éligibilité et le montant.
+          Sources : <a href="https://www.service-public.gouv.fr/particuliers/vosdroits/F10871" target="_blank" rel="noopener">service-public.gouv.fr</a> · <a href="https://www.moneyvox.fr/credit/duree-ptz-plus.php" target="_blank" rel="noopener">durées (Moneyvox)</a></p>
+        </section>
       </div>
       <!-- ===== NÉGOCIATION ===== -->
       <div class="col" data-view="negociation" hidden>
@@ -519,14 +538,16 @@ function baseSim(){
   return {id:null, ref:"", bien:{type:"maison",surface:100,niveaux:1,annee:"",sdb:1,prix:"",dept:"11",zone:"ville",cp:"",acces:"1",assain:"collectif"},
     postes:blankPostes(), conseiller:(S&&S.conseiller)||"", tel:(S&&S.tel)||"",
     nego:{marche:"",taux:3.5,duree:20,dpe:"",dpeCible:""},
-    aides:defaultAides()};
+    aides:defaultAides(), ptz:defaultPtz()};
 }
 const defaultAides=()=>({pers:2,rfr:"",rp:true,chauf:"pac_ae",fioul:false,audit:false,cee:"",elig:""});
+const defaultPtz=()=>({zone:"",type:"ancien",primo:true,rfr:"",cout:""});
 let S = null;
 S = ls.get("st2-sim") || fromPreset("maison70");
 if(!S.bien.dept){S.bien.dept="11";S.bien.zone="ville";S.bien.cp="";delete S.bien.secteur}
 S.nego = Object.assign({marche:"",taux:3.5,duree:20,dpe:"",dpeCible:""}, S.nego||{});
 S.aides = Object.assign(defaultAides(), S.aides||{});
+S.ptz = Object.assign(defaultPtz(), S.ptz||{});
 
 /* =================== CALCUL (fonctions pures) =================== */
 const applies = (p,b) => !(p.maison && b.type!=="maison");
@@ -647,6 +668,57 @@ function computeAides(s,r){
   out.reste=Math.max(0,r.ttc-out.total);
   return out;
 }
+
+/* =================== BARÈME PTZ (service-public.gouv.fr, vérifié le 15 septembre 2026) =================== */
+const PTZ = {
+  date:"15 septembre 2026",
+  plafRes:{A:[49000,73500,88200,102900,117600,132300,147000,161700],B1:[34500,51750,62100,72450,82800,93150,103500,113850],
+           B2:[31500,47250,56700,66150,75600,85050,94500,103950],C:[28500,42750,51300,59850,68400,76950,85500,94050]},
+  plafCout:{A:[150000,225000,270000,315000,360000],B1:[135000,202500,243000,283500,324000],
+            B2:[110000,165000,198000,231000,264000],C:[100000,150000,180000,210000,240000]},
+  coef:[1,1.5,1.8,2.1,2.4],
+  tranches:{A:[25000,31000,37000,49000],B1:[21500,26000,30000,34500],B2:[18000,22500,27000,31500],C:[15000,19500,24000,28500]},
+  quotite:{collectif:[0.5,0.4,0.4,0.2],individuel:[0.3,0.2,0.2,0.1]},
+  durees:[[25,10],[20,8],[15,2],[10,0]]   // [durée totale, différé] en années
+};
+function computePtz(s,r){
+  const p=s.ptz, a=s.aides, zone=p.zone, ancien=p.type==="ancien";
+  const pers=Math.max(1,Math.round(+a.pers||1));
+  const rfr=p.rfr!==""&&p.rfr!=null?+p.rfr:(a.rfr!==""&&a.rfr!=null?+a.rfr:null);
+  const prix=+s.bien.prix||0, trav=r.ttc;
+  const cout=p.cout!==""&&p.cout!=null?+p.cout:(ancien?prix+trav:prix);
+  const checks=[];
+  const add=(label,ok,detail)=>checks.push({label,ok,detail});
+  add("Primo-accédant",p.primo!==false, p.primo===false?"L'acquéreur ne doit pas avoir été propriétaire de sa résidence principale dans les 2 ans précédant le prêt.":"");
+  add("Résidence principale",a.rp!==false, a.rp===false?"Le logement doit devenir la résidence principale de l'acquéreur.":"");
+  if(!zone) add("Zone de la commune",null,"Renseignez la zone de la commune.");
+  else if(ancien) add("Commune en zone B2 ou C",zone==="B2"||zone==="C", zone==="B2"||zone==="C"?"":"Dans l'ancien, le PTZ est réservé aux communes des zones B2 et C.");
+  else add("Zone de la commune",true,"");
+  let ratio=null;
+  if(ancien){
+    if(!(cout>0)) add("Travaux d'au moins 25 % du coût total",null,"Renseignez le prix affiché du bien.");
+    else{ratio=trav/cout; add("Travaux d'au moins 25 % du coût total",ratio>=0.25,`Travaux : ${Math.round(ratio*100)} % du coût total${ratio<0.25?` (il manque environ ${eur(Math.max(0,(cout-trav)/3-trav))} de travaux)`:""}.`)}
+    const dc=s.nego.dpeCible;
+    if(!dc) add("Classe E ou mieux après travaux",null,"Renseignez la classe visée après travaux (DPE).");
+    else add("Classe E ou mieux après travaux","ABCDE".includes(dc), "ABCDE".includes(dc)?"":"Après travaux, le logement doit atteindre au moins la classe E.");
+  }
+  let rev=null, plaf=null, tranche=null;
+  if(rfr==null) add("Revenus sous le plafond",null,"Renseignez le revenu fiscal de référence de l'acquéreur.");
+  else if(zone){
+    rev=Math.max(rfr,cout/9); plaf=PTZ.plafRes[zone][Math.min(pers,8)-1];
+    const q=rev/PTZ.coef[Math.min(pers,5)-1], t=PTZ.tranches[zone].findIndex(x=>q<=x);
+    tranche=t===-1?null:t;
+    add("Revenus sous le plafond",rev<=plaf&&tranche!=null,`Revenu retenu ${eur1(rev)}${rfr<cout/9?" (coût de l'opération ÷ 9)":""}, plafond ${eur1(plaf)} pour ${pers} personne${pers>1?"s":""}.`);
+  }
+  const eligible=checks.every(c=>c.ok===true), refused=checks.some(c=>c.ok===false);
+  let montant=0, duree=null, differe=null, quot=null;
+  if(zone&&tranche!=null&&cout>0){
+    quot=(p.type==="neufi"?PTZ.quotite.individuel:PTZ.quotite.collectif)[tranche];
+    montant=quot*Math.min(cout,PTZ.plafCout[zone][Math.min(pers,5)-1]);
+    [duree,differe]=PTZ.durees[tranche];
+  }
+  return {checks,eligible,refused,montant,tranche,quot,duree,differe,cout,rev,plaf,ratio};
+}
 /* =================== FORMATAGE =================== */
 const $=id=>document.getElementById(id);
 const fmt=(n,step=100)=>new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Math.round(n/step)*step);
@@ -740,6 +812,7 @@ function renderResult(){
     :`<p class="note">Activez au moins un poste de travaux pour obtenir une estimation.</p>`;
   POSTES.forEach(p=>{const el=$("amt-"+p.id); if(el){const l=R.lines.find(x=>x.p.id===p.id); el.textContent=l?eur(l.ttc):""}});
   renderAidesTab();
+  renderPtz();
   renderNego();
   ls.set("st2-sim",S);
 }
@@ -790,6 +863,7 @@ function renderNego(){
   if(A&&A.cat!=null&&A.total>0) a+=`D'après votre profil, les aides pourraient atteindre environ ${eur(A.total)} (${A.best==="ampleur"?"MaPrimeRénov' rénovation d'ampleur":"MaPrimeRénov' par geste"}${A.cee?" et prime CEE":""}), ramenant le reste à charge autour de ${eur(A.reste)}.\n\n`;
   if(A&&A.ecoptz&&A.ecoptz.ok) a+=`Vous pouvez également financer jusqu'à ${eur1(A.ecoptz.max)} de travaux avec un éco-prêt à taux zéro, sans condition de revenus.\n\n`;
   if(nrj.length) a+=`Ces montants sont à confirmer avec un conseiller France Rénov' (0 808 800 700), avant tout début de travaux.\n\n`;
+  if(P&&!P.refused&&P.montant>0) a+=`${P.eligible?"Votre projet semble éligible":"Sous réserve de confirmation, votre projet pourrait être éligible"} au prêt à taux zéro pour l'achat : jusqu'à ${eur(P.montant)} sur ${P.duree} ans${P.differe?`, dont ${P.differe} ans de différé`:""}. Votre banque confirmera le montant exact.\n\n`;
   a+=`Ces montants sont indicatifs et non contractuels : je vous recommande de faire établir des devis par des professionnels.\n\nBien à vous,${S.conseiller?`\n${S.conseiller}\nConseiller immobilier iad`:""}`;
   $("acqTxt").value=a;
 }
@@ -840,6 +914,28 @@ function ptzBlock(){
   return `<div class="info"><strong>Éco-prêt à taux zéro</strong> (sans condition de revenus) : jusqu'à ${eur1(p.max)} pour ${p.type}, remboursable sur ${p.duree} ans.
     <ul><li>Financement à 0 % du reste à charge : ${eur(pret)}, soit environ ${eur1(mens)}/mois.</li>
     ${autre>0?`<li>Solde de ${eur(autre)} au taux de ${String(S.nego.taux).replace(".",",")} % sur ${S.nego.duree} ans : environ ${eur1(mensAutre)}/mois.</li>`:""}</ul></div>`;
+}
+
+let P=null;
+function renderPtz(){
+  const p=S.ptz;
+  $("ptz-zone").value=p.zone; $("ptz-type").value=p.type; $("ptz-primo").value=p.primo===false?"0":"1";
+  $("ptz-rfr").value=p.rfr??""; $("ptz-cout").value=p.cout??"";
+  P=computePtz(S,R);
+  $("ptz-cout").placeholder=P.cout>0?Math.round(P.cout):"prix + travaux";
+  const verdict=P.eligible?'<span class="chip ok">Éligible</span>':P.refused?'<span class="chip warn">Non éligible</span>':'<span class="chip">À confirmer</span>';
+  let h=`<dl class="kv"><dt>Éligibilité au PTZ</dt><dd>${verdict}</dd></dl><div class="tbl"><table><tbody>${
+    P.checks.map(c=>`<tr><td><strong>${c.label}</strong>${c.detail?`<br><small style="color:var(--muted)">${esc(c.detail)}</small>`:""}</td><td class="n">${
+      c.ok===true?'<span class="chip ok">Oui</span>':c.ok===false?'<span class="chip warn">Non</span>':'<span class="chip">À vérifier</span>'}</td></tr>`).join("")}</tbody></table></div>`;
+  if(!P.refused&&P.montant>0){
+    const remb=P.duree-P.differe, mens=P.montant/(remb*12);
+    h+=`<dl class="kv"><dt>Montant maximal du PTZ</dt><dd class="hl">${eur(P.montant)}</dd>
+      <dt>Tranche de revenus</dt><dd>${P.tranche+1} · ${Math.round(P.quot*100)} % du coût retenu</dd>
+      <dt>Durée</dt><dd>${P.duree} ans${P.differe?`, dont ${P.differe} ans de différé`:""}</dd>
+      <dt>Mensualité ${P.differe?"après le différé":""}</dt><dd>${eur1(mens)}/mois</dd></dl>
+      <div class="info">Le PTZ complète obligatoirement un autre prêt immobilier, et son montant est plafonné par rapport à ce prêt principal : la banque calcule le montant définitif.</div>`;
+  }
+  $("ptzOut").innerHTML=h;
 }
 /* =================== RENDU : HISTORIQUE =================== */
 function renderHisto(){
@@ -956,6 +1052,11 @@ $("m-go").addEventListener("click",()=>$("result").scrollIntoView({behavior:"smo
 $("a-rp").addEventListener("change",e=>{S.aides.rp=e.target.value==="1";renderResult()});
 $("a-chauf").addEventListener("change",e=>{S.aides.chauf=e.target.value;renderResult()});
 ["fioul","audit"].forEach(k=>$("a-"+k).addEventListener("change",e=>{S.aides[k]=e.target.checked;renderResult()}));
+
+["ptz-rfr","ptz-cout"].forEach(id=>$(id).addEventListener("input",e=>{S.ptz[id.slice(4)]=e.target.value===""?"":+e.target.value;renderResult()}));
+$("ptz-zone").addEventListener("change",e=>{S.ptz.zone=e.target.value;renderResult()});
+$("ptz-type").addEventListener("change",e=>{S.ptz.type=e.target.value;renderResult()});
+$("ptz-primo").addEventListener("change",e=>{S.ptz.primo=e.target.value==="1";renderResult()});
 /* =================== INTERACTIONS : NÉGOCIATION =================== */
 ["marche","taux","duree"].forEach(k=>$(k).addEventListener("input",e=>{S.nego[k]=e.target.value===""?"":+e.target.value;renderNego();ls.set("st2-sim",S)}));
 ["dpe","dpeCible"].forEach(k=>$(k).addEventListener("change",e=>{S.nego[k]=e.target.value;renderResult()}));
@@ -1037,9 +1138,10 @@ function buildPdf(){
       if(A.cee) rows.push(["Prime CEE (devis)",eur1(A.cee)]);
       rows.push(["Total des aides estimées",eur1(A.total)]); rows.push(["Reste à charge estimé",eur(A.reste)]);}
     if(A.ecoptz.ok) rows.push([`Éco-prêt à taux zéro possible (${A.ecoptz.duree} ans)`,"jusqu'à "+eur1(A.ecoptz.max)]);
+    if(P&&!P.refused&&P.montant>0) rows.push([`Prêt à taux zéro pour l'achat${P.eligible?"":" (à confirmer)"} · ${P.duree} ans`,"jusqu'à "+eur(P.montant)]);
     rows.forEach(r=>{need(6);T(r[0],M,y);if(r[1]){doc.setFont("helvetica","bold");T(r[1],W-M,y,{align:"right"});doc.setFont("helvetica","normal")}y+=5.2});
     doc.setFontSize(7.5);doc.setTextColor(...grey);
-    const src=doc.splitTextToSize(pdfTxt(`Barème service-public.gouv.fr vérifié le ${BAREME.date}. Montants à confirmer par l'Anah et France Rénov' (0 808 800 700) avant tout début de travaux.`),W-2*M);
+    const src=doc.splitTextToSize(pdfTxt(`Barèmes service-public.gouv.fr vérifiés le ${BAREME.date} (aides) et le ${PTZ.date} (PTZ). Montants à confirmer par l'Anah et France Rénov' (0 808 800 700) avant tout début de travaux.`),W-2*M);
     need(src.length*3.6+4);doc.text(src,M,y+1);y+=src.length*3.6+6}
   // Points d'attention
   const pts=[]; const yr=+b.annee;
@@ -1088,14 +1190,14 @@ $("save").addEventListener("click",async()=>{
   if(!S.ref){toast("toast","Indiquez une référence du bien (étape 1) avant d'enregistrer.");$("ref").focus();return}
   if(!S.id) S.id="s"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   const prev=histo.find(h=>h.id===S.id)||{};
-  const docBody={id:S.id,ref:S.ref,bien:S.bien,postes:S.postes,nego:S.nego,aides:Object.assign({},S.aides,{rfr:"",profil:A&&A.cat!=null?BAREME.cats[A.cat].couleur:""}),conseiller:S.conseiller,tel:S.tel,ttc:Math.round(R.ttc),low:Math.round(R.low),high:Math.round(R.high),updatedAt:new Date().toISOString(),reel:prev.reel||null};
+  const docBody={id:S.id,ref:S.ref,bien:S.bien,postes:S.postes,nego:S.nego,ptz:Object.assign({},S.ptz,{rfr:""}),aides:Object.assign({},S.aides,{rfr:"",profil:A&&A.cat!=null?BAREME.cats[A.cat].couleur:""}),conseiller:S.conseiller,tel:S.tel,ttc:Math.round(R.ttc),low:Math.round(R.low),high:Math.round(R.high),updatedAt:new Date().toISOString(),reel:prev.reel||null};
   try{await db.collection("users/"+uid+"/sims").doc(S.id).set(docBody);ls.set("st2-sim",S);toast("toast","Simulation enregistrée dans votre historique.")}
   catch(e){toast("toast",e&&e.code==="quota_exceeded"?"Historique plein : supprimez d'anciennes simulations.":"Enregistrement impossible pour l'instant.")}
 });
 $("histo").addEventListener("click",async e=>{
   const o=e.target.closest("[data-open]"), d=e.target.closest("[data-delh]"), r=e.target.closest("[data-reelsave]");
   if(o){const h=histo.find(x=>x.id===o.dataset.open); if(!h)return;
-    S=Object.assign(baseSim(),clone({id:h.id,ref:h.ref,bien:h.bien,postes:Object.assign(blankPostes(),h.postes),nego:Object.assign(baseSim().nego,h.nego||{}),aides:Object.assign(defaultAides(),h.aides||{}),conseiller:h.conseiller||S.conseiller,tel:h.tel||S.tel}));
+    S=Object.assign(baseSim(),clone({id:h.id,ref:h.ref,bien:h.bien,postes:Object.assign(blankPostes(),h.postes),nego:Object.assign(baseSim().nego,h.nego||{}),aides:Object.assign(defaultAides(),h.aides||{}),ptz:Object.assign(defaultPtz(),h.ptz||{}),conseiller:h.conseiller||S.conseiller,tel:h.tel||S.tel}));
     photos={};renderAll();location.hash="#simulation";scrollTo({top:0})}
   if(d){if(d.dataset.confirm!=="1"){d.dataset.confirm="1";d.textContent="Confirmer ?";setTimeout(()=>{d.dataset.confirm="";d.textContent="Supprimer"},3000);return}
     try{await db.collection("users/"+uid+"/sims").doc(d.dataset.delh).delete()}catch(err){toast("toast","Suppression impossible.")}}

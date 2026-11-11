@@ -255,6 +255,13 @@ td input.w{width:100%;min-width:160px}
           <div id="postes"></div>
           <div id="aides"></div>
         </section>
+
+        <section class="card" aria-labelledby="h-rooms">
+          <p class="eyebrow">Option</p>
+          <h2 id="h-rooms">Second œuvre pièce par pièce</h2>
+          <label class="qty" style="font-size:.85rem;color:var(--fg)"><input type="checkbox" class="tog" id="rooms-on"> Chiffrer les peintures, les sols, la cuisine, la salle de bain et les WC pièce par pièce</label>
+          <div id="roomsBody" class="col" style="gap:14px"></div>
+        </section>
       </div>
 
 
@@ -431,6 +438,7 @@ td input.w{width:100%;min-width:160px}
           <button class="cta sec" id="save">Enregistrer</button>
           <button class="cta sec" id="copy">Copier le texte</button>
         </div>
+        <button class="cta sec" id="share">Copier le lien de cette simulation</button>
         <p class="toast" id="toast" role="status"></p>
         <textarea id="fallback" hidden aria-label="Texte à copier"></textarea>
         <p class="legal">Estimation indicative et non contractuelle. Elle ne remplace pas un devis établi par un professionnel du bâtiment ni un diagnostic technique.</p>
@@ -460,7 +468,9 @@ const DEFAULT_GRID = {
   vmc:{p:[300,1200,2500],tva:10}, elec:{p:[15,50,100],tva:10}, plomb:{p:[10,35,70],tva:10},
   sols:{p:[20,50,90],tva:10}, peint:{p:[15,30,55],tva:10}, cuisine:{p:[2500,7000,14000],tva:10},
   sdb:{p:[3000,8000,14000],tva:10}, wc:{p:[600,1500,2500],tva:10}, anc:{p:[1000,4000,9000],tva:10},
-  cloture:{p:[20,50,90],tva:10}
+  cloture:{p:[20,50,90],tva:10},
+  r_peintm:{p:[12,25,40],tva:10}, r_peintp:{p:[15,28,45],tva:10}, r_parquet:{p:[25,55,95],tva:10},
+  r_carrelage:{p:[30,65,110],tva:10}, r_souple:{p:[15,30,50],tva:10}, r_plinthes:{p:[8,15,25],tva:10}
 };
 const DEFAULT_PARAMS = {aleas:10, low:0.85, high:1.20, g0:0.8, g2:1.35};
 const DEFAULT_REGIONS = [
@@ -507,6 +517,23 @@ const POSTES = [
   {id:"cloture",fam:"Extérieurs",label:"Clôture",unit:"ml",help:"mètres linéaires",maison:1,q:()=>40}
 ];
 const NIV = ["Rafraîchir","Rénover","Refaire"], GAM = ["Éco","Standard","Qualitatif"];
+/* ----- Second œuvre pièce par pièce ----- */
+const ROOM_TYPES=[["salon","Séjour / salon"],["chambre","Chambre"],["cuisine","Cuisine"],["sdb","Salle de bain"],["wc","WC"],["couloir","Couloir / dégagement"],["autre","Autre pièce"]];
+const perimRoom=r=>4.2*Math.sqrt(Math.max(0,+r.s||0));   // pièce rectangulaire d'environ 1,6 × 1
+const ROOM_TRAVAUX=[
+  {id:"r_peintm",label:"Peinture des murs",unit:"m²",q:(r,h)=>perimRoom(r)*h*0.85},
+  {id:"r_peintp",label:"Peinture des plafonds",unit:"m²",q:r=>+r.s||0},
+  {id:"r_parquet",label:"Parquet",unit:"m²",q:r=>+r.s||0},
+  {id:"r_carrelage",label:"Carrelage",unit:"m²",q:r=>+r.s||0},
+  {id:"r_souple",label:"Sol souple (vinyle, lino)",unit:"m²",q:r=>+r.s||0},
+  {id:"r_plinthes",label:"Plinthes",unit:"ml",q:r=>perimRoom(r)*0.9},
+  {id:"r_cuisine",label:"Cuisine équipée",unit:"u",q:()=>1,types:["cuisine"],grid:"cuisine"},
+  {id:"r_sdb",label:"Salle de bain complète",unit:"u",q:()=>1,types:["sdb"],grid:"sdb"},
+  {id:"r_wc",label:"WC",unit:"u",q:()=>1,types:["wc"],grid:"wc"}
+];
+const ROOM_REPLACES=["peint","sols","cuisine","sdb","wc"];
+const GRID_ITEMS=POSTES.concat(ROOM_TRAVAUX.filter(t=>!t.grid));
+const roomTravOk=(t,r)=>!t.types||t.types.includes(r.t);
 const PRESETS = {
   appart:{bien:{type:"appartement",surface:55,niveaux:1,annee:1985,sdb:1,prix:149000,dept:"11",zone:"ville",cp:"",acces:"1.1",assain:"collectif"},ref:"Exemple · appartement T3",
     on:{peint:[0,1],sols:[0,1],elec:[0,1],cuisine:[0,1],sdb:[0,1]}},
@@ -538,16 +565,18 @@ function baseSim(){
   return {id:null, ref:"", bien:{type:"maison",surface:100,niveaux:1,annee:"",sdb:1,prix:"",dept:"11",zone:"ville",cp:"",acces:"1",assain:"collectif"},
     postes:blankPostes(), conseiller:(S&&S.conseiller)||"", tel:(S&&S.tel)||"",
     nego:{marche:"",taux:3.5,duree:20,dpe:"",dpeCible:""},
-    aides:defaultAides(), ptz:defaultPtz()};
+    aides:defaultAides(), ptz:defaultPtz(), rooms:defaultRooms()};
 }
 const defaultAides=()=>({pers:2,rfr:"",rp:true,chauf:"pac_ae",fioul:false,audit:false,cee:"",elig:""});
 const defaultPtz=()=>({zone:"",type:"ancien",primo:true,rfr:"",cout:""});
+const defaultRooms=()=>({on:false,h:2.5,nch:2,list:[],trav:{}});
 let S = null;
 S = ls.get("st2-sim") || fromPreset("maison70");
 if(!S.bien.dept){S.bien.dept="11";S.bien.zone="ville";S.bien.cp="";delete S.bien.secteur}
 S.nego = Object.assign({marche:"",taux:3.5,duree:20,dpe:"",dpeCible:""}, S.nego||{});
 S.aides = Object.assign(defaultAides(), S.aides||{});
 S.ptz = Object.assign(defaultPtz(), S.ptz||{});
+S.rooms = Object.assign(defaultRooms(), S.rooms||{});
 
 /* =================== CALCUL (fonctions pures) =================== */
 const applies = (p,b) => !(p.maison && b.type!=="maison");
@@ -563,11 +592,27 @@ function compute(s,c){
   let ht=0, ttc=0; const lines=[];
   POSTES.forEach(p=>{
     const st=s.postes[p.id]; if(!st||!st.on||!applies(p,b)) return;
+    if(s.rooms&&s.rooms.on&&ROOM_REPLACES.includes(p.id)) return;
     const g=c.grid[p.id]||DEFAULT_GRID[p.id];
     const q = st.q!=null&&st.q!=="" ? +st.q : autoQty(p,b);
     const lht = q*g.p[st.niv]*gm[st.gam]*coef*al, lttc = lht*(1+g.tva/100);
     ht+=lht; ttc+=lttc; lines.push({p,q,ht:lht,ttc:lttc,st});
   });
+  if(s.rooms&&s.rooms.on){
+    const h=+s.rooms.h||2.5;
+    ROOM_TRAVAUX.forEach(t=>{
+      const st=s.rooms.trav[t.id]; if(!st||!st.rooms||!st.rooms.length) return;
+      const g=c.grid[t.grid||t.id]||DEFAULT_GRID[t.grid||t.id];
+      const pu=g.p[st.niv??1]*gm[st.gam??1]*coef*al;
+      let q=0, lht=0; const det=[];
+      st.rooms.forEach(i=>{const r=s.rooms.list[i]; if(!r||!roomTravOk(t,r)) return;
+        const qi=t.q(r,h), hi=qi*pu; q+=qi; lht+=hi; det.push({i,ttc:hi*(1+g.tva/100)})});
+      if(!det.length) return;
+      const lttc=lht*(1+g.tva/100);
+      ht+=lht; ttc+=lttc;
+      lines.push({p:{id:t.id,label:t.label,unit:t.unit,fam:"Pièce par pièce"},q:Math.round(q*10)/10,ht:lht,ttc:lttc,st:{on:true,niv:st.niv??1,gam:st.gam??1},rooms:det});
+    });
+  }
   return {ht,ttc,low:ttc*pr.low,high:ttc*pr.high,lines};
 }
 function mensualite(capital,tauxPct,ans){
@@ -755,6 +800,7 @@ function renderPostes(){
     fams[f].forEach(p=>{
       const st=S.postes[p.id];
       if(!applies(p,b)){h+=`<div class="poste off"><span></span><div class="name">${p.label}<small>Parties communes : à voir avec le syndic</small></div></div>`;return}
+      if(S.rooms.on&&ROOM_REPLACES.includes(p.id)){h+=`<div class="poste off"><span></span><div class="name">${p.label}<small>Chiffré pièce par pièce, plus bas</small></div></div>`;return}
       h+=`<div class="poste ${st.on?"":"off"}" data-id="${p.id}">
         <input type="checkbox" class="tog" id="on-${p.id}" ${st.on?"checked":""} aria-label="Activer ${p.label}">
         <label class="name" for="on-${p.id}">${p.label}${p.help?`<small>${p.help}</small>`:""}</label>
@@ -794,6 +840,71 @@ function renderAides(){
   $("aides").innerHTML=on.length?`<div class="info"><strong>Travaux énergétiques détectés</strong> : l'acquéreur peut prétendre à des aides (MaPrimeRénov', primes CEE, éco-PTZ, TVA à 5,5 %). <a href="#aides">Estimer le montant des aides</a></div>`:"";
 }
 
+
+/* =================== RENDU : PIÈCE PAR PIÈCE =================== */
+function renderRooms(){
+  const R_=S.rooms; $("rooms-on").checked=!!R_.on;
+  if(!R_.on){$("roomsBody").innerHTML=`<p class="note">Activez cette option pour détailler le second œuvre de chaque pièce : surfaces de murs, plafonds, sols et plinthes calculées automatiquement à partir de la surface de chaque pièce.</p>`;return}
+  const L=R_.list, tot=L.reduce((x,r)=>x+(+r.s||0),0);
+  let h=`<div class="fields">
+    <label class="f">Hauteur sous plafond (m)<input id="rooms-h" type="number" min="2" max="5" step="0.05" inputmode="decimal" value="${R_.h}"></label>
+    <label class="f">Nombre de chambres<input id="rooms-nch" type="number" min="0" max="8" step="1" inputmode="numeric" value="${R_.nch}"></label>
+  </div>
+  <div class="btnrow"><button class="cta sec" id="roomsFill">Pré-remplir les pièces selon la surface</button></div>`;
+  h+=L.length?`<div class="tbl"><table><thead><tr><th>Pièce</th><th>Type</th><th class="n">m²</th><th class="n">Montant TTC</th><th></th></tr></thead><tbody>${
+    L.map((r,i)=>`<tr><td><input class="w" id="rm-n-${i}" data-rm="${i}" data-k="n" value="${esc(r.n)}" aria-label="Nom de la pièce" style="min-width:110px"></td>
+      <td><select id="rm-t-${i}" data-rm="${i}" data-k="t" aria-label="Type de pièce">${ROOM_TYPES.map(([v,l])=>`<option value="${v}" ${v===r.t?"selected":""}>${l}</option>`).join("")}</select></td>
+      <td class="n"><input id="rm-s-${i}" data-rm="${i}" data-k="s" type="number" min="0" step="0.5" inputmode="decimal" value="${r.s}" aria-label="Surface"></td>
+      <td class="n" id="rm-amt-${i}">—</td><td class="n"><button class="ghost danger" data-rmdel="${i}" aria-label="Supprimer la pièce">Retirer</button></td></tr>`).join("")
+  }</tbody></table></div>`:`<p class="empty">Aucune pièce. Pré-remplissez selon la surface ou ajoutez les pièces une à une.</p>`;
+  h+=`<div class="btnrow"><button class="ghost" id="roomAdd">Ajouter une pièce</button></div>
+    <p class="note" id="roomsTot">Total des pièces : ${String(Math.round(tot*10)/10).replace(".",",")} m² pour ${S.bien.surface||0} m² habitables.</p>`;
+  if(L.length){
+    h+=`<h3 class="sm">Travaux par pièce</h3>`;
+    ROOM_TRAVAUX.forEach(t=>{
+      const idx=L.map((r,i)=>i).filter(i=>roomTravOk(t,L[i])); if(!idx.length) return;
+      const st=R_.trav[t.id]||{rooms:[],niv:1,gam:1};
+      h+=`<div class="poste" data-rt="${t.id}" style="grid-template-columns:minmax(0,1fr) auto">
+        <div class="name">${t.label}<small>${t.unit==="u"?"forfait par pièce":"quantité calculée par pièce"}</small></div>
+        <span class="amt" id="rt-amt-${t.id}"></span>
+        <div class="ctrl" style="grid-column:1/3">
+          <div class="seg" role="group" aria-label="Niveau">${NIV.map((n,i)=>`<button data-rk="niv" data-v="${i}" aria-pressed="${(st.niv??1)===i}">${n}</button>`).join("")}</div>
+          <div class="seg" role="group" aria-label="Gamme">${GAM.map((n,i)=>`<button data-rk="gam" data-v="${i}" aria-pressed="${(st.gam??1)===i}">${n}</button>`).join("")}</div>
+          <div class="btnrow" style="gap:6px">${idx.map(i=>`<button class="pill" data-rroom="${i}" aria-pressed="${st.rooms.includes(i)}" style="${st.rooms.includes(i)?"background:var(--accent);border-color:var(--accent);color:#000":""}">${esc(L[i].n||"Pièce")}</button>`).join("")}</div>
+        </div></div>`;
+    });
+  }
+  $("roomsBody").innerHTML=h;
+  updateRoomAmounts();
+}
+function updateRoomAmounts(){
+  if(!S.rooms.on||!R) return;
+  const per={};
+  R.lines.forEach(l=>{ if(l.rooms) l.rooms.forEach(d=>per[d.i]=(per[d.i]||0)+d.ttc);
+    const el=$("rt-amt-"+l.p.id); if(el) el.textContent=eur(l.ttc); });
+  ROOM_TRAVAUX.forEach(t=>{const el=$("rt-amt-"+t.id); if(el&&!R.lines.some(l=>l.p.id===t.id)) el.textContent=""});
+  S.rooms.list.forEach((r,i)=>{const el=$("rm-amt-"+i); if(el) el.textContent=per[i]?eur(per[i]):"—"});
+  const tot=S.rooms.list.reduce((x,r)=>x+(+r.s||0),0), el=$("roomsTot");
+  if(el) el.textContent=`Total des pièces : ${String(Math.round(tot*10)/10).replace(".",",")} m² pour ${S.bien.surface||0} m² habitables.`;
+}
+function prefillRooms(){
+  const S0=+S.bien.surface||80, n=Math.max(0,Math.round(+S.rooms.nch||0)), L=[];
+  const cuis=Math.max(6,Math.round(S0*0.1)), sdb=Math.max(4,Math.round(S0*0.06)), wc=2, couloir=Math.round(S0*0.06);
+  const ch=n?Math.max(9,Math.round(S0*0.13)):0;
+  const salon=Math.max(12,Math.round(S0-cuis-sdb-wc-couloir-ch*n));
+  L.push({n:"Séjour / salon",t:"salon",s:salon});
+  for(let i=1;i<=n;i++) L.push({n:n>1?"Chambre "+i:"Chambre",t:"chambre",s:ch});
+  L.push({n:"Cuisine",t:"cuisine",s:cuis},{n:"Salle de bain",t:"sdb",s:sdb},{n:"WC",t:"wc",s:wc},{n:"Couloir",t:"couloir",s:couloir});
+  const all=L.map((r,i)=>i), of=types=>L.map((r,i)=>types.includes(r.t)?i:-1).filter(i=>i>=0);
+  S.rooms.list=L;
+  S.rooms.trav={r_peintm:{rooms:all,niv:1,gam:1},r_peintp:{rooms:all,niv:1,gam:1},
+    r_parquet:{rooms:of(["salon","chambre","couloir"]),niv:1,gam:1},r_plinthes:{rooms:of(["salon","chambre","couloir"]),niv:1,gam:1},
+    r_carrelage:{rooms:of(["cuisine","sdb","wc"]),niv:1,gam:1}};
+}
+function removeRoom(i){
+  S.rooms.list.splice(i,1);
+  for(const id in S.rooms.trav){const st=S.rooms.trav[id];st.rooms=st.rooms.filter(x=>x!==i).map(x=>x>i?x-1:x)}
+}
 /* =================== RENDU : RÉSULTAT =================== */
 let R;
 function renderResult(){
@@ -811,6 +922,7 @@ function renderResult(){
     `<div class="bar"><span class="t">${l.p.label}</span><span class="v">${eur(l.ttc)}</span><div class="track"><div class="fill" style="width:${(l.ttc/max*100).toFixed(1)}%"></div></div></div>`).join("")
     :`<p class="note">Activez au moins un poste de travaux pour obtenir une estimation.</p>`;
   POSTES.forEach(p=>{const el=$("amt-"+p.id); if(el){const l=R.lines.find(x=>x.p.id===p.id); el.textContent=l?eur(l.ttc):""}});
+  updateRoomAmounts();
   renderAidesTab();
   renderPtz();
   renderNego();
@@ -960,7 +1072,7 @@ function workCfg(){return draftCfg||cfg}
 function renderGrille(){
   const c=workCfg(), dis=canEditGrid?"":"disabled";
   ["aleas","low","high","g0","g2"].forEach(k=>{$("p-"+k).value=c.params[k];$("p-"+k).disabled=!canEditGrid});
-  $("grilleBody").innerHTML=POSTES.map(p=>{const g=c.grid[p.id];return `<tr><td>${p.label}</td><td>${p.unit==="forfait"?"forfait":"€/"+p.unit}</td>${
+  $("grilleBody").innerHTML=GRID_ITEMS.map(p=>{const g=c.grid[p.id]||DEFAULT_GRID[p.id];return `<tr><td>${p.label}</td><td>${p.unit==="forfait"?"forfait":"€/"+p.unit}</td>${
     [0,1,2].map(i=>`<td class="n"><input id="g-${p.id}-${i}" data-g="${p.id}" data-i="${i}" type="number" min="0" step="1" value="${g.p[i]}" ${dis}></td>`).join("")
   }<td class="n"><input id="g-${p.id}-tva" data-g="${p.id}" data-i="tva" type="number" min="0" max="20" step="0.5" value="${g.tva}" ${dis}></td></tr>`}).join("");
   const coefRows=(list,kind,key)=>list.map((x,i)=>{
@@ -990,7 +1102,7 @@ function renderGrille(){
   }</tbody></table></div>`;
 }
 
-function renderAll(){renderBien();renderPostes();renderDiag();renderAides();renderResult();renderHisto();renderGrille()}
+function renderAll(){renderBien();renderPostes();renderRooms();renderDiag();renderAides();renderResult();renderHisto();renderGrille()}
 
 /* =================== ONGLETS =================== */
 const TABS=["simulation","aides","negociation","historique","grille"];
@@ -1047,6 +1159,34 @@ $("tel").addEventListener("input",e=>{S.tel=e.target.value;ls.set("st2-sim",S)})
 $("m-go").addEventListener("click",()=>$("result").scrollIntoView({behavior:"smooth"}));
 
 
+
+/* =================== INTERACTIONS : PIÈCE PAR PIÈCE =================== */
+$("rooms-on").addEventListener("change",e=>{S.rooms.on=e.target.checked;
+  if(S.rooms.on&&!S.rooms.list.length) prefillRooms();
+  renderPostes();renderRooms();renderAides();renderResult()});
+$("roomsBody").addEventListener("input",e=>{const t=e.target;
+  if(t.id==="rooms-h"){S.rooms.h=+t.value||2.5;renderResult();return}
+  if(t.id==="rooms-nch"){S.rooms.nch=+t.value||0;ls.set("st2-sim",S);return}
+  if(t.dataset.rm!=null&&t.dataset.k!=="t"){const r=S.rooms.list[+t.dataset.rm];
+    if(t.dataset.k==="s") r.s=+t.value||0; else r.n=t.value;
+    if(t.dataset.k==="n") document.querySelectorAll(`[data-rroom="${t.dataset.rm}"]`).forEach(b=>b.textContent=t.value||"Pièce");
+    renderResult()}
+});
+$("roomsBody").addEventListener("change",e=>{const t=e.target;
+  if(t.dataset.rm!=null&&t.dataset.k==="t"){S.rooms.list[+t.dataset.rm].t=t.value;renderRooms();renderResult()}});
+$("roomsBody").addEventListener("click",e=>{
+  if(e.target.closest("#roomsFill")){prefillRooms();renderRooms();renderResult();return}
+  if(e.target.closest("#roomAdd")){S.rooms.list.push({n:"Pièce "+(S.rooms.list.length+1),t:"autre",s:10});renderRooms();renderResult();return}
+  const del=e.target.closest("[data-rmdel]"); if(del){removeRoom(+del.dataset.rmdel);renderRooms();renderResult();return}
+  const row=e.target.closest("[data-rt]"); if(!row) return;
+  const id=row.dataset.rt, st=S.rooms.trav[id]=S.rooms.trav[id]||{rooms:[],niv:1,gam:1};
+  const rb=e.target.closest("[data-rroom]");
+  if(rb){const i=+rb.dataset.rroom, on=!st.rooms.includes(i);
+    st.rooms=on?st.rooms.concat(i).sort((a,b)=>a-b):st.rooms.filter(x=>x!==i);
+    rb.setAttribute("aria-pressed",on);rb.style.cssText=on?"background:var(--accent);border-color:var(--accent);color:#000":"";renderResult();return}
+  const sb=e.target.closest("button[data-rk]");
+  if(sb){st[sb.dataset.rk]=+sb.dataset.v;sb.parentElement.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===sb));renderResult()}
+});
 /* =================== INTERACTIONS : AIDES =================== */
 ["a-pers","a-rfr","a-cee","a-elig"].forEach(id=>$(id).addEventListener("input",e=>{const k={"a-pers":"pers","a-rfr":"rfr","a-cee":"cee","a-elig":"elig"}[id];S.aides[k]=e.target.value===""?"":+e.target.value;renderResult()}));
 $("a-rp").addEventListener("change",e=>{S.aides.rp=e.target.value==="1";renderResult()});
@@ -1190,14 +1330,14 @@ $("save").addEventListener("click",async()=>{
   if(!S.ref){toast("toast","Indiquez une référence du bien (étape 1) avant d'enregistrer.");$("ref").focus();return}
   if(!S.id) S.id="s"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   const prev=histo.find(h=>h.id===S.id)||{};
-  const docBody={id:S.id,ref:S.ref,bien:S.bien,postes:S.postes,nego:S.nego,ptz:Object.assign({},S.ptz,{rfr:""}),aides:Object.assign({},S.aides,{rfr:"",profil:A&&A.cat!=null?BAREME.cats[A.cat].couleur:""}),conseiller:S.conseiller,tel:S.tel,ttc:Math.round(R.ttc),low:Math.round(R.low),high:Math.round(R.high),updatedAt:new Date().toISOString(),reel:prev.reel||null};
+  const docBody={id:S.id,ref:S.ref,bien:S.bien,postes:S.postes,nego:S.nego,rooms:S.rooms,ptz:Object.assign({},S.ptz,{rfr:""}),aides:Object.assign({},S.aides,{rfr:"",profil:A&&A.cat!=null?BAREME.cats[A.cat].couleur:""}),conseiller:S.conseiller,tel:S.tel,ttc:Math.round(R.ttc),low:Math.round(R.low),high:Math.round(R.high),updatedAt:new Date().toISOString(),reel:prev.reel||null};
   try{await db.collection("users/"+uid+"/sims").doc(S.id).set(docBody);ls.set("st2-sim",S);toast("toast","Simulation enregistrée dans votre historique.")}
   catch(e){toast("toast",e&&e.code==="quota_exceeded"?"Historique plein : supprimez d'anciennes simulations.":"Enregistrement impossible pour l'instant.")}
 });
 $("histo").addEventListener("click",async e=>{
   const o=e.target.closest("[data-open]"), d=e.target.closest("[data-delh]"), r=e.target.closest("[data-reelsave]");
   if(o){const h=histo.find(x=>x.id===o.dataset.open); if(!h)return;
-    S=Object.assign(baseSim(),clone({id:h.id,ref:h.ref,bien:h.bien,postes:Object.assign(blankPostes(),h.postes),nego:Object.assign(baseSim().nego,h.nego||{}),aides:Object.assign(defaultAides(),h.aides||{}),ptz:Object.assign(defaultPtz(),h.ptz||{}),conseiller:h.conseiller||S.conseiller,tel:h.tel||S.tel}));
+    S=Object.assign(baseSim(),clone({id:h.id,ref:h.ref,bien:h.bien,postes:Object.assign(blankPostes(),h.postes),nego:Object.assign(baseSim().nego,h.nego||{}),aides:Object.assign(defaultAides(),h.aides||{}),ptz:Object.assign(defaultPtz(),h.ptz||{}),rooms:Object.assign(defaultRooms(),clone(h.rooms||{})),conseiller:h.conseiller||S.conseiller,tel:h.tel||S.tel}));
     photos={};renderAll();location.hash="#simulation";scrollTo({top:0})}
   if(d){if(d.dataset.confirm!=="1"){d.dataset.confirm="1";d.textContent="Confirmer ?";setTimeout(()=>{d.dataset.confirm="";d.textContent="Supprimer"},3000);return}
     try{await db.collection("users/"+uid+"/sims").doc(d.dataset.delh).delete()}catch(err){toast("toast","Suppression impossible.")}}
@@ -1284,6 +1424,34 @@ function connect(){
 if("serviceWorker" in navigator) addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
 
 /* =================== DÉMARRAGE =================== */
+/* ----- Lien de partage : la simulation est encodée dans l'adresse (?sim=), sans revenus ----- */
+function encodeSim(){
+  const o=clone(S); delete o.id; o.aides.rfr=""; o.ptz.rfr=""; o.conseiller=""; o.tel="";
+  const bytes=new TextEncoder().encode(JSON.stringify({v:1,s:o}));
+  let bin=""; bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function decodeSim(str){
+  const b64=str.replace(/-/g,"+").replace(/_/g,"/"), bin=atob(b64+"===".slice((b64.length+3)%4));
+  const d=JSON.parse(new TextDecoder().decode(Uint8Array.from(bin,c=>c.charCodeAt(0))));
+  if(!d||d.v!==1||!d.s||!d.s.bien) throw new Error("format");
+  const base=baseSim(), s=d.s;
+  return Object.assign(base,s,{id:null,conseiller:S.conseiller,tel:S.tel,
+    bien:Object.assign(base.bien,s.bien), postes:Object.assign(blankPostes(),s.postes||{}),
+    nego:Object.assign(base.nego,s.nego||{}), aides:Object.assign(defaultAides(),s.aides||{}),
+    ptz:Object.assign(defaultPtz(),s.ptz||{}), rooms:Object.assign(defaultRooms(),s.rooms||{})});
+}
+(function loadShared(){
+  const q=new URLSearchParams(location.search).get("sim"); if(!q) return;
+  try{S=decodeSim(q);photos={};setTimeout(()=>toast("toast","Simulation partagée chargée."),300)}
+  catch(e){setTimeout(()=>toast("toast","Ce lien de simulation n'est pas valide."),300)}
+  history.replaceState(null,"",location.pathname+location.hash);
+})();
+$("share").addEventListener("click",()=>{
+  const url=location.origin+location.pathname+"?sim="+encodeSim()+"#simulation";
+  copyText(url);
+});
+
 renderAll(); route(); prepLogo(); connect();
 </script>
 </body>

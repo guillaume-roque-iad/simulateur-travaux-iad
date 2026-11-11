@@ -291,7 +291,7 @@ td input.w{width:100%;min-width:160px}
             <label class="qty"><input type="checkbox" id="a-fioul" style="width:auto"> Dépose d'une cuve à fioul</label>
             <label class="qty"><input type="checkbox" id="a-audit" style="width:auto"> Audit énergétique réalisé</label>
           </div>
-          <p class="note">Les dépenses éligibles reprennent par défaut les postes énergétiques et les menuiseries de la simulation. La prime CEE varie selon le fournisseur d'énergie : saisissez le montant figurant sur le devis de l'artisan.</p>
+          <p class="note">Les dépenses éligibles reprennent par défaut les postes énergétiques et les menuiseries extérieures de la simulation (fenêtres, portes-fenêtres, fenêtres de toit, porte d'entrée). La prime CEE varie selon le fournisseur d'énergie : saisissez le montant figurant sur le devis de l'artisan.</p>
         </section>
 
         <section class="card" aria-live="polite">
@@ -469,6 +469,8 @@ const DEFAULT_GRID = {
   sols:{p:[20,50,90],tva:10}, peint:{p:[15,30,55],tva:10}, cuisine:{p:[2500,7000,14000],tva:10},
   sdb:{p:[3000,8000,14000],tva:10}, wc:{p:[600,1500,2500],tva:10}, anc:{p:[1000,4000,9000],tva:10},
   cloture:{p:[20,50,90],tva:10},
+  planchers:{p:[20,70,150],tva:10}, pfen:{p:[200,1300,2000],tva:10}, velux:{p:[150,1100,1800],tva:10},
+  pentree:{p:[250,1800,3000],tva:10}, pgarage:{p:[200,1500,2800],tva:10}, pint:{p:[80,350,600],tva:10},
   r_peintm:{p:[12,25,40],tva:10}, r_peintp:{p:[15,28,45],tva:10}, r_parquet:{p:[25,55,95],tva:10},
   r_carrelage:{p:[30,65,110],tva:10}, r_souple:{p:[15,30,50],tva:10}, r_plinthes:{p:[8,15,25],tva:10}
 };
@@ -501,7 +503,13 @@ const perim = b => 4*Math.sqrt(emprise(b))*1.1;
 const POSTES = [
   {id:"toiture",fam:"Gros œuvre",label:"Toiture",unit:"m²",help:"surface de toiture",maison:1,q:b=>emprise(b)*1.3},
   {id:"facade",fam:"Gros œuvre",label:"Façade / ravalement",unit:"m²",help:"surface de façade",maison:1,q:b=>perim(b)*b.niveaux*2.8},
-  {id:"menuis",fam:"Gros œuvre",label:"Menuiseries extérieures",unit:"u",help:"fenêtres et portes-fenêtres",q:b=>Math.ceil(b.surface/12)},
+  {id:"planchers",fam:"Gros œuvre",label:"Planchers",unit:"m²",help:"consolidation → remplacement de la structure",q:b=>emprise(b)*Math.max(1,b.niveaux-1)},
+  {id:"menuis",fam:"Menuiseries",label:"Fenêtres",unit:"u",help:"fourniture et pose",ext:1,q:b=>Math.ceil(b.surface/15)},
+  {id:"pfen",fam:"Menuiseries",label:"Portes-fenêtres",unit:"u",help:"portes-fenêtres et baies",ext:1,q:b=>Math.max(1,Math.round(b.surface/40))},
+  {id:"velux",fam:"Menuiseries",label:"Fenêtres de toit",unit:"u",help:"type Velux",ext:1,q:()=>1},
+  {id:"pentree",fam:"Menuiseries",label:"Porte d'entrée",unit:"u",help:"",ext:1,q:()=>1},
+  {id:"pgarage",fam:"Menuiseries",label:"Porte de garage",unit:"u",help:"",maison:1,q:()=>1},
+  {id:"pint",fam:"Menuiseries",label:"Portes intérieures",unit:"u",help:"bloc-porte posé",q:b=>Math.max(2,Math.round(b.surface/15))},
   {id:"combles",fam:"Énergie",label:"Isolation des combles",unit:"m²",help:"surface de combles",maison:1,energie:1,q:b=>emprise(b)},
   {id:"murs",fam:"Énergie",label:"Isolation des murs",unit:"m²",help:"murs extérieurs",energie:1,q:b=>b.type==="maison"?perim(b)*b.niveaux*2.5*0.85:b.surface*0.9},
   {id:"chauffage",fam:"Énergie",label:"Chauffage / eau chaude",unit:"forfait",help:"entretien → pompe à chaleur",energie:1,q:()=>1},
@@ -540,7 +548,7 @@ const PRESETS = {
   maison70:{bien:{type:"maison",surface:110,niveaux:1,annee:1974,sdb:1,prix:235000,dept:"34",zone:"ville",cp:"",acces:"1",assain:"collectif"},ref:"Exemple · maison années 70",dpe:["E","C"],aides:{pers:3,rfr:36000,chauf:"pac_ae",audit:true},
     on:{combles:[1,1],menuis:[2,1],chauffage:[2,1],elec:[1,1],peint:[1,1],sols:[1,1],cuisine:[1,1],sdb:[1,1]}},
   rehab:{bien:{type:"maison",surface:140,niveaux:2,annee:1930,sdb:1,prix:180000,dept:"11",zone:"rural",cp:"",acces:"1.1",assain:"anc"},ref:"Exemple · maison de village",dpe:["G","D"],aides:{pers:2,rfr:24000,chauf:"pac_ae",fioul:true,audit:true},
-    on:{toiture:[2,1],facade:[1,1],menuis:[2,1],combles:[2,1],murs:[1,1],chauffage:[2,1],vmc:[1,1],elec:[2,1],plomb:[2,1],sols:[2,1],peint:[2,1],cuisine:[2,1],sdb:[2,1],wc:[2,1],anc:[2,1]}}
+    on:{toiture:[2,1],facade:[1,1],planchers:[1,1],menuis:[2,1],pentree:[2,1],pint:[2,1],combles:[2,1],murs:[1,1],chauffage:[2,1],vmc:[1,1],elec:[2,1],plomb:[2,1],sols:[2,1],peint:[2,1],cuisine:[2,1],sdb:[2,1],wc:[2,1],anc:[2,1]}}
 };
 
 /* =================== ÉTAT =================== */
@@ -577,6 +585,7 @@ S.nego = Object.assign({marche:"",taux:3.5,duree:20,dpe:"",dpeCible:""}, S.nego|
 S.aides = Object.assign(defaultAides(), S.aides||{});
 S.ptz = Object.assign(defaultPtz(), S.ptz||{});
 S.rooms = Object.assign(defaultRooms(), S.rooms||{});
+S.postes = Object.assign(blankPostes(), S.postes||{});
 
 /* =================== CALCUL (fonctions pures) =================== */
 const applies = (p,b) => !(p.maison && b.type!=="maison");
@@ -656,7 +665,7 @@ function computeAides(s,r){
   const rp=a.rp!==false, out={cat,idf,om,age,warnings:[],geste:null,ampleur:null,mar:null,ecoptz:null};
   const chaufLine=r.lines.find(l=>l.p.id==="chauffage");
   // ----- Dépenses éligibles
-  const eligLines=r.lines.filter(l=>l.p.energie||l.p.id==="menuis");
+  const eligLines=r.lines.filter(l=>l.p.energie||l.p.ext);
   const htSet=eligLines.reduce((x,l)=>x+l.ht,0), ttcSet=eligLines.reduce((x,l)=>x+l.ttc,0);
   const htElig=a.elig!==""&&a.elig!=null?+a.elig:htSet, ttcElig=htSet>0?ttcSet*htElig/htSet:htElig*1.055;
   out.htElig=htElig; out.htEligAuto=htSet;
@@ -695,7 +704,8 @@ function computeAides(s,r){
     out.mar={taux:BAREME.mar.taux[cat],max:BAREME.mar.taux[cat]*BAREME.mar.plafond};
   }
   // ----- Éco-PTZ (sans condition de ressources)
-  const acts=["combles","murs","menuis","chauffage"].filter(id=>r.lines.some(l=>l.p.id===id));
+  const acts=["combles","murs","chauffage"].filter(id=>r.lines.some(l=>l.p.id===id));
+  if(r.lines.some(l=>l.p.ext)) acts.push("menuis");   // fenêtres, portes-fenêtres, fenêtres de toit et porte d'entrée : une seule action
   const anc=r.lines.find(l=>l.p.id==="anc");
   let max=0, duree=BAREME.ecoptz.dureePonctuel, type="";
   if(out.ampleur&&out.ampleur.ok){max=BAREME.ecoptz.global;duree=BAREME.ecoptz.dureeGlobal;type="performance globale"}
